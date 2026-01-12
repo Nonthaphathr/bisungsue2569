@@ -898,6 +898,11 @@
                                    placeholder="มีคำนำหน้าชื่อ เช่น นายนนทพัทธ์ หิรัญเรือง">
                         </div>
                         <div class="form-group">
+                            <label>หมายเลขโทรศัพท์ติดต่อ <span style="color: red;">*</span></label>
+                            <input type="tel" class="form-control" id="phoneNumber" required 
+                                   placeholder="เช่น 081-234-5678">
+                        </div>
+                        <div class="form-group">
                             <label>สังกัดกลุ่มสาระการเรียนรู้ <span style="color: red;">*</span></label>
                             <select class="form-control" id="department" required>
                                 <option value="">-- เลือกกลุ่มสาระ --</option>
@@ -1072,6 +1077,9 @@
                                 <label>ข้อความพิเศษ (จะแสดงเป็นข้อความสีน้ำเงินในเอกสาร)</label>
                                 <textarea class="form-control" id="specialNoteText" rows="3" 
                                           placeholder="เช่น หมายเหตุ: ติดต่อสอบถามเพิ่มเติม 081-234-5678"></textarea>
+                                <button type="button" class="btn btn-outline" style="margin-top: 0.5rem;" onclick="useDefaultSpecialNote()">
+                                    📝 ใช้ template เริ่มต้น
+                                </button>
                             </div>
                             <button class="btn btn-primary" onclick="saveSpecialNote()">
                                 💾 บันทึกข้อความ
@@ -1447,6 +1455,7 @@
             document.getElementById('officer').value = '';
             document.getElementById('docType').value = 'ซื้อ';
             document.getElementById('creatorName').value = '';
+            document.getElementById('phoneNumber').value = '';
             document.getElementById('department').selectedIndex = 0;
 
             // Clear table
@@ -1478,6 +1487,7 @@
                 officer: document.getElementById('officer').value,
                 docType: document.getElementById('docType').value,
                 creatorName: document.getElementById('creatorName').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
                 department: document.getElementById('department').value,
                 items: [],
                 grandTotal: document.getElementById('grandTotal').textContent,
@@ -1540,6 +1550,17 @@
                 Swal.fire({
                     title: 'ข้อมูลไม่ครบถ้วน',
                     text: 'กรุณากรอกชื่อผู้ทำรายการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return false;
+            }
+
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            if (!phoneNumber) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกหมายเลขโทรศัพท์ติดต่อ',
                     icon: 'warning',
                     confirmButtonColor: '#1a365d'
                 });
@@ -1614,7 +1635,12 @@
                 document.getElementById('semester').value = '';
                 document.getElementById('projectName').value = 'โครงการพัฒนากระบวนการเรียนรู้ด้วยสื่อ นวัตกรรมเทคโนโลยีและวิจัย';
                 document.getElementById('creatorName').value = '';
+                document.getElementById('phoneNumber').value = '';
                 document.getElementById('department').selectedIndex = 0;
+
+                // Switch to history tab
+                await loadHistory();
+                switchTab('history');
 
             } catch (error) {
                 console.error('Error saving data:', error);
@@ -1641,6 +1667,7 @@
                     officer: document.getElementById('officer').value,
                     docType: document.getElementById('docType').value,
                     creatorName: document.getElementById('creatorName').value,
+                    phoneNumber: document.getElementById('phoneNumber').value,
                     department: document.getElementById('department').value,
                     items: []
                 };
@@ -1694,6 +1721,7 @@
                 document.getElementById('officer').value = formData.officer || '';
                 document.getElementById('docType').value = formData.docType || 'ซื้อ';
                 document.getElementById('creatorName').value = formData.creatorName || '';
+                document.getElementById('phoneNumber').value = formData.phoneNumber || '';
                 document.getElementById('department').value = formData.department || '';
 
                 // Load items
@@ -1766,7 +1794,7 @@
             // Save on input change
             const formInputs = [
                 'semester', 'projectName', 'director', 'officer', 
-                'docType', 'creatorName', 'department'
+                'docType', 'creatorName', 'phoneNumber', 'department'
             ];
 
             formInputs.forEach(id => {
@@ -1878,10 +1906,10 @@
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
                     <div class="doc-header">
-                        <div class="doc-title">รายละเอียดงบประมาณการดำเนิน</div>
+                        <div class="doc-title">รายละเอียดงบประมาณดำเนินการ</div>
                         <div class="doc-subtitle">${data.projectName}</div>
                         <div class="doc-subtitle">……………………………………….</div>
-                        <div class="doc-subtitle">${data.department} จำนวน ${data.grandTotal} บาท</div>
+                        <div class="doc-subtitle">${data.creatorName} ${data.department} จำนวน ${data.grandTotal} บาท</div>
                     </div>
                     <table>
                         <thead>
@@ -1923,6 +1951,11 @@
                             </tr>
                         </tfoot>
                     </table>
+                    <div style="margin-top: 40px; text-align: center;">
+                        <div style="margin-bottom: 5px;">ลงชื่อ ...........................................</div>
+                        <div>(${data.creatorName})</div>
+                        <div>ครูผู้ทำรายการ</div>
+                    </div>
                     ${data.specialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
                 </div>
             `;
@@ -1978,6 +2011,11 @@
                     </table>
                     <div class="note">
                         <p>หมายเหตุ : กำหนดงบประมาณไม่เกิน ${data.grandTotal} บาท</p>
+                    </div>
+                    <div style="margin-top: 30px; margin-bottom: 20px; text-align: center;">
+                        <div style="margin-bottom: 5px;">ลงชื่อ ...........................................</div>
+                        <div>(${data.creatorName})</div>
+                        <div>ครูผู้ทำรายการ</div>
                     </div>
                     <div class="signature-section">
                         <div class="signature-box">
@@ -2183,6 +2221,7 @@
                 document.getElementById('officer').value = record.officer || '';
                 document.getElementById('docType').value = record.docType || 'ซื้อ';
                 document.getElementById('creatorName').value = record.creatorName || '';
+                document.getElementById('phoneNumber').value = record.phoneNumber || '';
                 document.getElementById('department').value = record.department || '';
 
                 // ล้างตารางเดิม
@@ -2351,6 +2390,7 @@
                 officer: mergedData[0].officer,
                 docType: mergedData[0].docType,
                 creatorName: mergedData[0].creatorName,
+                phoneNumber: mergedData[0].phoneNumber || '',
                 items: allItems,
                 grandTotal: totalBudget.toFixed(2),
                 specialNote: mergedData[0].specialNote || ''
@@ -2654,6 +2694,33 @@
         }
 
         // Save special note
+        // Use default special note template
+        function useDefaultSpecialNote() {
+            const creatorName = document.getElementById('creatorName').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            
+            if (!creatorName || !phoneNumber) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    html: 'กรุณากรอก<br>- ชื่อผู้ทำรายการ<br>- หมายเลขโทรศัพท์<br>ก่อนใช้ template',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+            
+            const template = `หากสนใจสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
+            document.getElementById('specialNoteText').value = template;
+            
+            Swal.fire({
+                title: 'สำเร็จ!',
+                text: 'ใส่ template เริ่มต้นแล้ว',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
         async function saveSpecialNote() {
             specialNoteText = document.getElementById('specialNoteText').value;
             await saveAdminSettings();
