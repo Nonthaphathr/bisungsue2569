@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบออกเอกสารใบสั่งซื้อ/สั่งจ้างตามโครงการ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --primary-light: #2c5282;
+            --accent: #d69e2e;
+            --bg: #f7fafc;
+            --card-bg: #ffffff;
+            --text: #2d3748;
+            --border: #e2e8f0;
+            --success: #38a169;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #edf2f7 100%);
+            min-height: 100vh;
+            padding: 2rem 2rem 6rem;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .header .developer {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: var(--bg);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        .items-table thead {
+            background: var(--primary);
+            color: white;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .items-table th {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .items-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        .items-table input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .items-table input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .items-table .number-col {
+            width: 60px;
+            text-align: center;
+        }
+
+        .items-table .item-col {
+            min-width: 300px;
+        }
+
+        .items-table .price-col,
+        .items-table .qty-col,
+        .items-table .unit-col {
+            width: 120px;
+        }
+
+        .items-table .total-col {
+            width: 120px;
+            text-align: right;
+        }
+
+        .items-table .action-col {
+            width: 60px;
+            text-align: center;
+        }
+
+        .items-table tfoot {
+            background: #f7fafc;
+            font-weight: 600;
+        }
+
+        .items-table tfoot td {
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        /* Animation สำหรับปุ่มดูฐานข้อมูลราคา */
+        .btn-price-db {
+            position: relative;
+            overflow: hidden;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .btn-price-db::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-price-db:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 161, 105, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(56, 161, 105, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 161, 105, 0);
+            }
+        }
+
+        .btn-price-db:hover {
+            animation: none;
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text);
+        }
+
+        .modal-close:hover {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #e2e8f0;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* History Card */
+        .history-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .history-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .history-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .history-card-meta {
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .history-card-badge {
+            background: var(--accent);
+            color: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .history-card-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        /* Print Document Styles */
+        .print-document {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm;
+            font-family: 'Sarabun', sans-serif;
+            color: black;
+            margin: 0 auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .print-document .doc-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .print-document .doc-header-right {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        .print-document .doc-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .print-document .doc-subtitle {
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+
+        .print-document .doc-date {
+            font-size: 10px;
+            text-align: right;
+            margin-bottom: 10px;
+            padding-right: 20px;
+        }
+
+        .print-document .doc-content {
+            font-size: 10px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .print-document .doc-content p {
+            margin-bottom: 5px;
+        }
+
+        .print-document .special-note {
+            font-size: 9px;
+            color: #0066cc;
+            font-style: italic;
+            margin: 5px 0;
+        }
+
+        .print-document table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+
+        .print-document table th,
+        .print-document table td {
+            border: 1px solid #333;
+            padding: 5px;
+            text-align: left;
+        }
+
+        .print-document table th {
+            background: #f0f0f0;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .print-document table td.number {
+            text-align: center;
+            width: 40px;
+        }
+
+        .print-document table td.amount {
+            text-align: right;
+        }
+
+        .print-document table tfoot td {
+            font-weight: 600;
+            background: #f0f0f0;
+        }
+
+        .print-document .signature-section {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            font-size: 10px;
+        }
+
+        .print-document .signature-box {
+            text-align: center;
+        }
+
+        .print-document .signature-line {
+            margin-top: 40px;
+            margin-bottom: 5px;
+        }
+
+        .print-document .note {
+            margin-top: 15px;
+            font-size: 10px;
+        }
+
+        #printArea {
+            display: none;
+        }
+
+        /* Checkbox for merge */
+        .merge-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 1rem;
+        }
+
+        .merge-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        /* Admin Panel Styles */
+        .admin-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .admin-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .file-input-label input[type="file"] {
+            display: none;
+        }
+
+        .price-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .price-history-table th,
+        .price-history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .price-history-table th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .price-history-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Search box highlight */
+        #priceDbSearch {
+            transition: all 0.3s ease;
+        }
+
+        #priceDbSearch:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+            transform: scale(1.02);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        @media print {
+            body > *:not(#printArea) {
+                display: none !important;
+            }
+
+            #printArea {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+
+            .print-document {
+                box-shadow: none !important;
+                page-break-after: always;
+            }
+
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.error {
+            background: #e53e3e;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 1rem 5rem;
+            }
+
+            .content {
+                padding: 1rem;
+            }
+
+            .form-grid, .filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .tabs {
+                overflow-x: scroll;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 ระบบออกเอกสารใบสั่งซื้อ/สั่งจ้างตามโครงการ</h1>
+            <p>โรงเรียนกระดุมทองวิทยา</p>
+            <p class="developer">พัฒนาโดย ครูนนทพัทธ์ หิรัญเรือง</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('create')">📝 สร้างเอกสาร</button>
+            <button class="tab" onclick="switchTab('history')">📚 ประวัติการสั่งซื้อ</button>
+            <button class="tab" onclick="switchTab('admin')">⚙️ ระบบแอดมิน</button>
+        </div>
+
+        <div class="content">
+            <!-- Tab: Create Document -->
+            <div id="createTab" class="tab-content active">
+                <div class="section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div class="section-title">📝 ข้อมูลพื้นฐาน</div>
+                        <span id="autoSaveIndicator" style="font-size: 0.85rem; opacity: 0; transition: opacity 0.3s ease; color: #38a169; font-weight: 500;"></span>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>ภาคเรียน/ปีการศึกษา <span style="color: red;">*</span></label>
+                            <input type="text" class="form-control" id="semester" required 
+                                   placeholder="เช่น 1/2569">
+                        </div>
+                        <div class="form-group">
+                            <label>ชื่อโครงการ <span style="color: red;">*</span></label>
+                            <input type="text" class="form-control" id="projectName" required 
+                                   value="โครงการพัฒนากระบวนการเรียนรู้ด้วยสื่อ นวัตกรรมเทคโนโลยีและวิจัย"
+                                   placeholder="เช่น โครงการพัฒนากระบวนการเรียนรู้ ด้วยสื่อ นวัตกรรม เทคโนโลยี และวิจัย">
+                        </div>
+                        <div class="form-group">
+                            <label>ผู้อำนวยการโรงเรียน</label>
+                            <input type="text" class="form-control" id="director" 
+                                   value="นางสุนิสา ใจใหญ่">
+                        </div>
+                        <div class="form-group">
+                            <label>เจ้าหน้าที่พัสดุ</label>
+                            <input type="text" class="form-control" id="officer" 
+                                   value="นายไกรสร จันทวี">
+                        </div>
+                        <div class="form-group">
+                            <label>ประเภทเอกสาร <span style="color: red;">*</span></label>
+                            <select class="form-control" id="docType" required>
+                                <option value="ซื้อ">ใบสั่งซื้อ</option>
+                                <option value="จ้าง">ใบสั่งจ้าง</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ชื่อผู้ทำรายการ <span style="color: red;">*</span></label>
+                            <input type="text" class="form-control" id="creatorName" required 
+                                   placeholder="มีคำนำหน้าชื่อ เช่น นายนนทพัทธ์ หิรัญเรือง">
+                        </div>
+                        <div class="form-group">
+                            <label>สังกัดกลุ่มสาระการเรียนรู้ <span style="color: red;">*</span></label>
+                            <select class="form-control" id="department" required>
+                                <option value="">-- เลือกกลุ่มสาระ --</option>
+                                <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระการเรียนรู้คณิตศาสตร์</option>
+                                <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</option>
+                                <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระการเรียนรู้ภาษาไทย</option>
+                                <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ</option>
+                                <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนาและวัฒนธรรม">กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนาและวัฒนธรรม</option>
+                                <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา</option>
+                                <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระการเรียนรู้ศิลปะ</option>
+                                <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระการเรียนรู้การงานอาชีพ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🛒 รายการสินค้า/บริการ</div>
+                    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary btn-small" onclick="addRow()">
+                            ➕ เพิ่มแถว
+                        </button>
+                        <button class="btn btn-warning btn-small" onclick="clearTable()">
+                            🗑️ ล้างตาราง
+                        </button>
+                        <button class="btn btn-success btn-small btn-price-db" onclick="showPriceDatabase()">
+                            💰 ดูฐานข้อมูลราคา
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table class="items-table" id="itemsTable">
+                            <thead>
+                                <tr>
+                                    <th class="number-col">ที่</th>
+                                    <th class="item-col">รายการ</th>
+                                    <th class="price-col">ราคาต่อหน่วย (บาท)</th>
+                                    <th class="qty-col">จำนวน</th>
+                                    <th class="unit-col">หน่วยนับ</th>
+                                    <th class="total-col">เป็นเงิน (บาท)</th>
+                                    <th class="action-col">ลบ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody">
+                                <!-- Rows will be added here -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" style="text-align: right;">รวมเป็นเงิน</td>
+                                    <td id="grandTotal" style="text-align: right;">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-success" onclick="saveData()">
+                        💾 บันทึกรายการ
+                    </button>
+                    <button class="btn btn-primary" onclick="previewDocument('detail')">
+                        👁️ ดูตัวอย่างใบรายละเอียด
+                    </button>
+                    <button class="btn btn-primary" onclick="previewDocument('order')">
+                        👁️ ดูตัวอย่างใบสั่งซื้อ/จ้าง
+                    </button>
+                    <button class="btn btn-warning" onclick="confirmClearDraft()">
+                        🗑️ ล้างข้อมูล Draft
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab: History -->
+            <div id="historyTab" class="tab-content">
+                <div class="section">
+                    <div class="section-title">📚 ประวัติการสั่งซื้อ/จ้าง</div>
+                    
+                    <div class="filter-section">
+                        <h4 style="margin-bottom: 1rem;">🔍 กรองข้อมูล</h4>
+                        <div class="filter-grid">
+                            <div class="form-group">
+                                <label>ภาคเรียน/ปีการศึกษา</label>
+                                <select class="form-control" id="filterSemester" onchange="filterHistory()">
+                                    <option value="">ทั้งหมด</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>กลุ่มสาระ</label>
+                                <select class="form-control" id="filterDepartment" onchange="filterHistory()">
+                                    <option value="">ทั้งหมด</option>
+                                    <option value="กลุ่มสาระการเรียนรู้คณิตศาสตร์">กลุ่มสาระการเรียนรู้คณิตศาสตร์</option>
+                                    <option value="กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี">กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</option>
+                                    <option value="กลุ่มสาระการเรียนรู้ภาษาไทย">กลุ่มสาระการเรียนรู้ภาษาไทย</option>
+                                    <option value="กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ">กลุ่มสาระการเรียนรู้ภาษาต่างประเทศ</option>
+                                    <option value="กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนาและวัฒนธรรม">กลุ่มสาระการเรียนรู้สังคมศึกษา ศาสนาและวัฒนธรรม</option>
+                                    <option value="กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา">กลุ่มสาระการเรียนรู้สุขศึกษาและพลศึกษา</option>
+                                    <option value="กลุ่มสาระการเรียนรู้ศิลปะ">กลุ่มสาระการเรียนรู้ศิลปะ</option>
+                                    <option value="กลุ่มสาระการเรียนรู้การงานอาชีพ">กลุ่มสาระการเรียนรู้การงานอาชีพ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>ประเภทเอกสาร</label>
+                                <select class="form-control" id="filterDocType" onchange="filterHistory()">
+                                    <option value="">ทั้งหมด</option>
+                                    <option value="ซื้อ">ใบสั่งซื้อ</option>
+                                    <option value="จ้าง">ใบสั่งจ้าง</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                            <button class="btn btn-primary btn-small" onclick="printMergedDocuments('detail')">
+                                🖨️ พิมพ์รวมใบรายละเอียด (แยกหน้า)
+                            </button>
+                            <button class="btn btn-primary btn-small" onclick="printMergedDocuments('order')">
+                                🖨️ พิมพ์รวมใบสั่งซื้อ/จ้าง (แยกหน้า)
+                            </button>
+                            <button class="btn btn-success btn-small" onclick="printMergedSingleTable('detail')">
+                                📄 พิมพ์รวมใบรายละเอียด (ตารางเดียว)
+                            </button>
+                            <button class="btn btn-success btn-small" onclick="printMergedSingleTable('order')">
+                                📄 พิมพ์รวมใบสั่งซื้อ/จ้าง (ตารางเดียว)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="historyList">
+                        <!-- History cards will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Admin -->
+            <div id="adminTab" class="tab-content">
+                <div class="section">
+                    <div class="section-title">⚙️ ระบบแอดมิน</div>
+
+                    <!-- Export Data -->
+                    <div class="admin-card">
+                        <h3>📤 ส่งออกข้อมูล</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">ส่งออกรายการสินค้าและราคาทั้งหมดที่ถูกบันทึกในระบบเป็นไฟล์ Excel</p>
+                        <button class="btn btn-success" onclick="exportAllData()">
+                            📊 ส่งออกข้อมูลทั้งหมดเป็น Excel
+                        </button>
+                    </div>
+
+                    <!-- Import Price Database -->
+                    <div class="admin-card">
+                        <h3>📥 นำเข้าฐานข้อมูลราคาสินค้า</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">นำเข้าไฟล์ Excel เพื่อสร้างฐานข้อมูลราคาสินค้าอ้างอิง</p>
+                        <label class="file-input-label">
+                            📁 เลือกไฟล์ Excel
+                            <input type="file" accept=".xlsx,.xls" onchange="importPriceDatabase(event)">
+                        </label>
+                        <p style="margin-top: 1rem; font-size: 0.85rem; color: #718096;">
+                            รูปแบบไฟล์: คอลัมน์ที่ 1 = รายการสินค้า, คอลัมน์ที่ 2 = ราคา, คอลัมน์ที่ 3 = หน่วยนับ
+                        </p>
+                    </div>
+
+                    <!-- Special Note Toggle -->
+                    <div class="admin-card">
+                        <h3>📝 โน้ตพิเศษในเอกสาร</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">เปิด/ปิดโหมดเพิ่มข้อความหรือข้อมูลติดต่อพิเศษในเอกสาร</p>
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="specialNoteToggle" onchange="toggleSpecialNote()">
+                                <span class="slider"></span>
+                            </label>
+                            <span id="specialNoteStatus">ปิดใช้งาน</span>
+                        </div>
+                        <div id="specialNoteInput" style="display: none;">
+                            <div class="form-group">
+                                <label>ข้อความพิเศษ (จะแสดงเป็นข้อความสีน้ำเงินในเอกสาร)</label>
+                                <textarea class="form-control" id="specialNoteText" rows="3" 
+                                          placeholder="เช่น หมายเหตุ: ติดต่อสอบถามเพิ่มเติม 081-234-5678"></textarea>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveSpecialNote()">
+                                💾 บันทึกข้อความ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Price History -->
+                    <div class="admin-card">
+                        <h3>📜 ประวัติราคาสินค้า</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">ดูและพิมพ์ประวัติราคาสินค้าที่เคยสั่งซื้อ</p>
+                        <button class="btn btn-primary" onclick="showPriceHistory()">
+                            📊 ดูประวัติราคาสินค้า
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">📄 ตัวอย่างเอกสาร</h3>
+                <button class="modal-close" onclick="closeModal('previewModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="previewArea">
+                <!-- Document preview will be rendered here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('previewModal')">ปิด</button>
+                <button class="btn btn-success" onclick="printDocument()">🖨️ สั่งพิมพ์</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price Database Modal -->
+    <div class="modal-overlay" id="priceDbModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💰 ฐานข้อมูลราคาสินค้า</h3>
+                <button class="modal-close" onclick="closeModal('priceDbModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="background: white; padding: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="priceDbSearch" class="form-control" 
+                           placeholder="🔍 ค้นหารายการสินค้า..." 
+                           oninput="filterPriceDatabase()"
+                           style="max-width: 400px;">
+                </div>
+                <div id="priceDbContent">
+                    <!-- Price database will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('priceDbModal')">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price History Modal -->
+    <div class="modal-overlay" id="priceHistoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📜 ประวัติราคาสินค้า</h3>
+                <button class="modal-close" onclick="closeModal('priceHistoryModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="priceHistoryArea">
+                <!-- Price history will be rendered here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('priceHistoryModal')">ปิด</button>
+                <button class="btn btn-success" onclick="printPriceHistory()">🖨️ พิมพ์ประวัติราคา</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Print Area -->
+    <div id="printArea">
+        <!-- Document for printing will be rendered here -->
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdOpDSLDJxzIR6l9g63nsZvzutTE2juV4",
+            authDomain: "bisungsue2569.firebaseapp.com",
+            projectId: "bisungsue2569",
+            storageBucket: "bisungsue2569.firebasestorage.app",
+            messagingSenderId: "361000559438",
+            appId: "1:361000559438:web:31195f3bb6b85513d2b41f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.firestore = { collection, addDoc, getDocs, getDoc, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, setDoc };
+
+        console.log('Firebase initialized successfully!');
+
+        // Load initial data
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAdminSettings();
+            
+            // Load form from localStorage first
+            loadFormFromLocalStorage();
+            
+            // If no saved data, initialize empty rows
+            const tbody = document.getElementById('itemsTableBody');
+            if (tbody.children.length === 0) {
+                for (let i = 0; i < 10; i++) {
+                    addRow();
+                }
+            }
+            
+            // Setup auto-save listeners
+            setupAutoSave();
+        });
+    </script>
+
+    <script>
+        // Global variables
+        let allHistory = [];
+        let priceDatabase = {};
+        let specialNoteEnabled = false;
+        let specialNoteText = '';
+
+        // Tab switching
+        async function switchTab(tabName) {
+            // ถ้าเป็นแท็บแอดมิน ให้ตรวจสอบรหัสผ่านก่อน
+            if (tabName === 'admin') {
+                const result = await Swal.fire({
+                    title: '🔐 เข้าสู่ระบบแอดมิน',
+                    text: 'กรุณาใส่รหัสผ่าน',
+                    input: 'password',
+                    inputPlaceholder: 'รหัสผ่าน',
+                    showCancelButton: true,
+                    confirmButtonText: 'เข้าสู่ระบบ',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#1a365d',
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'กรุณาใส่รหัสผ่าน'
+                        }
+                        if (value !== '0000') {
+                            return 'รหัสผ่านไม่ถูกต้อง'
+                        }
+                    }
+                });
+
+                if (!result.isConfirmed) {
+                    return; // ยกเลิก ไม่เปลี่ยนแท็บ
+                }
+            }
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'history') {
+                loadHistory();
+            }
+        }
+
+        // Add new row to table
+        function addRow() {
+            const tbody = document.getElementById('itemsTableBody');
+            const rowCount = tbody.rows.length + 1;
+            const row = tbody.insertRow();
+
+            row.innerHTML = `
+                <td class="number-col">${rowCount}</td>
+                <td><input type="text" class="item-input" placeholder="ระบุรายการ หรือ Paste จาก Excel" /></td>
+                <td><input type="number" class="price-input" step="0.01" min="0" placeholder="0.00" oninput="calculateTotal(this)" /></td>
+                <td><input type="number" class="qty-input" step="0.01" min="0" placeholder="0" oninput="calculateTotal(this)" /></td>
+                <td><input type="text" class="unit-input" placeholder="หน่วย" /></td>
+                <td class="total-col"><span class="row-total">0.00</span></td>
+                <td class="action-col">
+                    <button class="btn btn-icon" onclick="deleteRow(this)" style="background: #e53e3e; color: white;" title="ลบแถว">
+                        🗑️
+                    </button>
+                </td>
+            `;
+
+            // Add paste event listener
+            const itemInput = row.querySelector('.item-input');
+            itemInput.addEventListener('paste', handlePaste);
+        }
+
+        // Delete row
+        function deleteRow(btn) {
+            const row = btn.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+            updateRowNumbers();
+            calculateGrandTotal();
+        }
+
+        // Update row numbers
+        function updateRowNumbers() {
+            const tbody = document.getElementById('itemsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                rows[i].cells[0].textContent = i + 1;
+            }
+        }
+
+        // Calculate row total
+        function calculateTotal(input) {
+            const row = input.parentNode.parentNode;
+            const price = parseFloat(row.querySelector('.price-input').value) || 0;
+            const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+            const total = price * qty;
+            row.querySelector('.row-total').textContent = total.toFixed(2);
+            calculateGrandTotal();
+        }
+
+        // Calculate grand total
+        function calculateGrandTotal() {
+            const tbody = document.getElementById('itemsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+            let grandTotal = 0;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const totalText = rows[i].querySelector('.row-total').textContent;
+                grandTotal += parseFloat(totalText) || 0;
+            }
+            
+            document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+        }
+
+        // Enhanced paste handler
+        function handlePaste(e) {
+            e.preventDefault();
+            const pastedData = e.clipboardData.getData('text');
+            let rows = pastedData.split('\n')
+                .map(row => row.trim())
+                .filter(row => row !== ''); // ตัดบรรทัดว่างออก
+            
+            if (rows.length === 0) return;
+
+            const tbody = document.getElementById('itemsTableBody');
+            const allRows = tbody.getElementsByTagName('tr');
+            
+            // หา row ว่างแรกที่จะเริ่มวาง
+            let startRowIndex = -1;
+            for (let i = 0; i < allRows.length; i++) {
+                const row = allRows[i];
+                const isEmpty = !row.querySelector('.item-input').value &&
+                               !row.querySelector('.price-input').value &&
+                               !row.querySelector('.qty-input').value &&
+                               !row.querySelector('.unit-input').value;
+                if (isEmpty) {
+                    startRowIndex = i;
+                    break;
+                }
+            }
+            
+            // ถ้าไม่มี row ว่างเลย ให้เพิ่ม row ใหม่
+            if (startRowIndex === -1) {
+                addRow();
+                startRowIndex = allRows.length - 1;
+            }
+
+            rows.forEach((rowData, index) => {
+                let cells = rowData.split('\t').map(cell => cell.trim());
+                
+                // ตัดคอลัมน์ผลรวมออก (ถ้ามี 5+ คอลัมน์ ให้เอาแค่ 4 คอลัมน์แรก)
+                if (cells.length > 4) {
+                    cells = cells.slice(0, 4);
+                }
+                
+                let targetRow;
+                const targetIndex = startRowIndex + index;
+                
+                // ถ้า row ที่ต้องการยังไม่มี ให้สร้างใหม่
+                if (targetIndex >= allRows.length) {
+                    addRow();
+                    targetRow = tbody.rows[tbody.rows.length - 1];
+                } else {
+                    targetRow = allRows[targetIndex];
+                }
+
+                // Fill in the data
+                if (cells[0]) targetRow.querySelector('.item-input').value = cells[0];
+                if (cells[1]) targetRow.querySelector('.price-input').value = cells[1];
+                if (cells[2]) targetRow.querySelector('.qty-input').value = cells[2];
+                if (cells[3]) targetRow.querySelector('.unit-input').value = cells[3];
+
+                // Calculate total for this row
+                const priceInput = targetRow.querySelector('.price-input');
+                if (priceInput.value) {
+                    calculateTotal(priceInput);
+                }
+            });
+
+            updateRowNumbers();
+        }
+
+        // Clear table
+        async function clearTable() {
+            const result = await Swal.fire({
+                title: 'ยืนยันการล้างข้อมูล',
+                text: 'ต้องการล้างข้อมูลในตารางทั้งหมดหรือไม่?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#38a169',
+                cancelButtonColor: '#e53e3e',
+                confirmButtonText: 'ใช่, ล้างข้อมูล',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+            
+            const tbody = document.getElementById('itemsTableBody');
+            tbody.innerHTML = '';
+            
+            for (let i = 0; i < 10; i++) {
+                addRow();
+            }
+            
+            calculateGrandTotal();
+            
+            Swal.fire({
+                title: 'สำเร็จ!',
+                text: 'ล้างข้อมูลในตารางเรียบร้อยแล้ว',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        // Confirm clear draft
+        async function confirmClearDraft() {
+            const result = await Swal.fire({
+                title: 'ยืนยันการล้างข้อมูล Draft',
+                text: 'ต้องการล้างข้อมูลที่บันทึกอัตโนมัติทั้งหมดหรือไม่? (รวมทั้งข้อมูลในฟอร์มและตาราง)',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: 'ใช่, ล้างข้อมูล',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            // Clear form fields
+            document.getElementById('semester').value = '';
+            document.getElementById('projectName').value = 'โครงการพัฒนากระบวนการเรียนรู้ด้วยสื่อ นวัตกรรมเทคโนโลยีและวิจัย';
+            document.getElementById('director').value = '';
+            document.getElementById('officer').value = '';
+            document.getElementById('docType').value = 'ซื้อ';
+            document.getElementById('creatorName').value = '';
+            document.getElementById('department').selectedIndex = 0;
+
+            // Clear table
+            const tbody = document.getElementById('itemsTableBody');
+            tbody.innerHTML = '';
+            for (let i = 0; i < 10; i++) {
+                addRow();
+            }
+            calculateGrandTotal();
+
+            // Clear localStorage
+            clearFormLocalStorage();
+
+            await Swal.fire({
+                title: 'สำเร็จ!',
+                text: 'ล้างข้อมูล Draft เรียบร้อยแล้ว',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        // Get form data
+        function getFormData() {
+            const data = {
+                semester: document.getElementById('semester').value,
+                projectName: document.getElementById('projectName').value,
+                director: document.getElementById('director').value,
+                officer: document.getElementById('officer').value,
+                docType: document.getElementById('docType').value,
+                creatorName: document.getElementById('creatorName').value,
+                department: document.getElementById('department').value,
+                items: [],
+                grandTotal: document.getElementById('grandTotal').textContent,
+                specialNote: specialNoteEnabled ? specialNoteText : ''
+            };
+
+            const tbody = document.getElementById('itemsTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const item = rows[i].querySelector('.item-input').value;
+                const price = rows[i].querySelector('.price-input').value;
+                const qty = rows[i].querySelector('.qty-input').value;
+                const unit = rows[i].querySelector('.unit-input').value;
+                const total = rows[i].querySelector('.row-total').textContent;
+
+                if (item || price || qty || unit) {
+                    data.items.push({
+                        no: i + 1,
+                        item: item,
+                        price: price,
+                        quantity: qty,
+                        unit: unit,
+                        total: total
+                    });
+                }
+            }
+
+            return data;
+        }
+
+        // Validate form
+        function validateForm() {
+            const semester = document.getElementById('semester').value;
+            const projectName = document.getElementById('projectName').value;
+            const creatorName = document.getElementById('creatorName').value;
+            const department = document.getElementById('department').value;
+
+            if (!semester) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกภาคเรียน/ปีการศึกษา',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return false;
+            }
+
+            if (!projectName) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกชื่อโครงการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return false;
+            }
+
+            if (!creatorName) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกชื่อผู้ทำรายการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return false;
+            }
+
+            if (!department) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณาเลือกกลุ่มสาระการเรียนรู้',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return false;
+            }
+
+            const data = getFormData();
+            if (data.items.length === 0) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกรายการสินค้า/บริการอย่างน้อย 1 รายการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return false;
+            }
+
+            return true;
+        }
+
+        // Save data to Firebase
+        async function saveData() {
+            if (!validateForm()) return;
+
+            try {
+                showLoading(true);
+                const data = getFormData();
+                data.createdAt = new Date().toISOString();
+
+                await window.firestore.addDoc(
+                    window.firestore.collection(window.db, 'purchase-orders'),
+                    data
+                );
+
+                // บันทึกราคาสินค้าลงฐานข้อมูล
+                for (const item of data.items) {
+                    if (item.item && item.price) {
+                        const key = item.item.toLowerCase().trim();
+                        if (!priceDatabase[key] || parseFloat(item.price) !== parseFloat(priceDatabase[key].price)) {
+                            priceDatabase[key] = {
+                                item: item.item,
+                                price: item.price,
+                                unit: item.unit,
+                                lastUpdated: new Date().toISOString()
+                            };
+                        }
+                    }
+                }
+                await savePriceDatabase();
+
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'บันทึกรายการเรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
+                // Clear form and localStorage
+                clearTable();
+                clearFormLocalStorage();
+                document.getElementById('semester').value = '';
+                document.getElementById('projectName').value = 'โครงการพัฒนากระบวนการเรียนรู้ด้วยสื่อ นวัตกรรมเทคโนโลยีและวิจัย';
+                document.getElementById('creatorName').value = '';
+                document.getElementById('department').selectedIndex = 0;
+
+            } catch (error) {
+                console.error('Error saving data:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถบันทึกข้อมูลได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ===== AUTO-SAVE TO LOCAL STORAGE =====
+        
+        // Save form to localStorage
+        function saveFormToLocalStorage() {
+            try {
+                const formData = {
+                    semester: document.getElementById('semester').value,
+                    projectName: document.getElementById('projectName').value,
+                    director: document.getElementById('director').value,
+                    officer: document.getElementById('officer').value,
+                    docType: document.getElementById('docType').value,
+                    creatorName: document.getElementById('creatorName').value,
+                    department: document.getElementById('department').value,
+                    items: []
+                };
+
+                // Save items from table
+                const tbody = document.getElementById('itemsTableBody');
+                const rows = tbody.getElementsByTagName('tr');
+                
+                for (let row of rows) {
+                    const item = row.querySelector('.item-input').value.trim();
+                    const price = row.querySelector('.price-input').value.trim();
+                    const quantity = row.querySelector('.qty-input').value.trim();
+                    const unit = row.querySelector('.unit-input').value.trim();
+                    
+                    // Save only non-empty rows
+                    if (item || price || quantity || unit) {
+                        formData.items.push({ item, price, quantity, unit });
+                    }
+                }
+
+                localStorage.setItem('purchaseOrderDraft', JSON.stringify(formData));
+                
+                // Update last saved time indicator
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('autoSaveIndicator').textContent = `💾 บันทึกอัตโนมัติ ${timeString}`;
+                document.getElementById('autoSaveIndicator').style.opacity = '1';
+                
+                // Fade out after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('autoSaveIndicator').style.opacity = '0';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+            }
+        }
+
+        // Load form from localStorage
+        function loadFormFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('purchaseOrderDraft');
+                if (!saved) return;
+
+                const formData = JSON.parse(saved);
+                
+                // Load form fields
+                document.getElementById('semester').value = formData.semester || '';
+                document.getElementById('projectName').value = formData.projectName || 'โครงการพัฒนากระบวนการเรียนรู้ด้วยสื่อ นวัตกรรมเทคโนโลยีและวิจัย';
+                document.getElementById('director').value = formData.director || '';
+                document.getElementById('officer').value = formData.officer || '';
+                document.getElementById('docType').value = formData.docType || 'ซื้อ';
+                document.getElementById('creatorName').value = formData.creatorName || '';
+                document.getElementById('department').value = formData.department || '';
+
+                // Load items
+                if (formData.items && formData.items.length > 0) {
+                    const tbody = document.getElementById('itemsTableBody');
+                    tbody.innerHTML = '';
+
+                    formData.items.forEach((item, index) => {
+                        addRow();
+                        const row = tbody.rows[index];
+                        if (row) {
+                            row.querySelector('.item-input').value = item.item || '';
+                            row.querySelector('.price-input').value = item.price || '';
+                            row.querySelector('.qty-input').value = item.quantity || '';
+                            row.querySelector('.unit-input').value = item.unit || '';
+                            
+                            const priceInput = row.querySelector('.price-input');
+                            if (priceInput.value) {
+                                calculateTotal(priceInput);
+                            }
+                        }
+                    });
+
+                    // Add extra empty rows
+                    for (let i = 0; i < 5; i++) {
+                        addRow();
+                    }
+                } else {
+                    // Initialize with 10 empty rows
+                    for (let i = 0; i < 10; i++) {
+                        addRow();
+                    }
+                }
+
+                updateRowNumbers();
+                calculateGrandTotal();
+
+                // Show notification
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'bottom-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'info',
+                    title: '📋 โหลดข้อมูลที่บันทึกไว้แล้ว'
+                });
+
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+            }
+        }
+
+        // Clear form localStorage
+        function clearFormLocalStorage() {
+            try {
+                localStorage.removeItem('purchaseOrderDraft');
+                document.getElementById('autoSaveIndicator').textContent = '';
+                document.getElementById('autoSaveIndicator').style.opacity = '0';
+            } catch (error) {
+                console.error('Error clearing localStorage:', error);
+            }
+        }
+
+        // Setup auto-save listeners
+        function setupAutoSave() {
+            // Save on input change
+            const formInputs = [
+                'semester', 'projectName', 'director', 'officer', 
+                'docType', 'creatorName', 'department'
+            ];
+
+            formInputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', debounce(saveFormToLocalStorage, 1000));
+                    element.addEventListener('change', saveFormToLocalStorage);
+                }
+            });
+
+            // Save when table changes (use event delegation)
+            document.getElementById('itemsTableBody').addEventListener('input', 
+                debounce(saveFormToLocalStorage, 1000)
+            );
+        }
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Format Thai date
+        function formatThaiDate(date = new Date()) {
+            const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                               'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+            if (typeof date === 'string') date = new Date(date);
+            const day = date.getDate();
+            const month = thaiMonths[date.getMonth()];
+            const year = date.getFullYear() + 543;
+            return `${day} ${month} ${year}`;
+        }
+
+        // Convert number to Thai text
+        function numberToThaiText(number) {
+            const units = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+            const places = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+            
+            if (number === 0) return 'ศูนย์';
+            
+            let result = '';
+            let numStr = Math.floor(number).toString();
+            
+            for (let i = 0; i < numStr.length; i++) {
+                const digit = parseInt(numStr[i]);
+                const place = numStr.length - i - 1;
+                
+                if (digit === 0) continue;
+                
+                if (place === 1 && digit === 2) {
+                    result += 'ยี่สิบ';
+                } else if (place === 1 && digit === 1) {
+                    result += 'สิบ';
+                } else if (place === 0 && digit === 1 && numStr.length > 1) {
+                    result += 'เอ็ด';
+                } else {
+                    result += units[digit] + places[place];
+                }
+            }
+            
+            return result + 'บาทถ้วน';
+        }
+
+        // Generate document HTML
+        function generateDocumentHTML(type, data = null, isMerged = false, mergedData = null) {
+            if (!data) data = getFormData();
+            
+            const date = formatThaiDate();
+            const totalText = numberToThaiText(parseFloat(data.grandTotal));
+            const docTypeText = data.docType === 'ซื้อ' ? 'ซื้อสินค้าวัสดุ-อุปกรณ์' : 'จ้างบริการ';
+
+            if (type === 'detail') {
+                let html = '';
+                
+                if (isMerged && mergedData) {
+                    // สร้างเอกสารรวมหลายโครงการ
+                    mergedData.forEach((record, index) => {
+                        html += generateSingleDetailDocument(record, index > 0);
+                    });
+                } else {
+                    html = generateSingleDetailDocument(data, false);
+                }
+                
+                return html;
+            } else {
+                let html = '';
+                
+                if (isMerged && mergedData) {
+                    // สร้างเอกสารรวมหลายโครงการ
+                    mergedData.forEach((record, index) => {
+                        html += generateSingleOrderDocument(record, index > 0);
+                    });
+                } else {
+                    html = generateSingleOrderDocument(data, false);
+                }
+                
+                return html;
+            }
+        }
+
+        function generateSingleDetailDocument(data, pageBreak) {
+            return `
+                <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
+                    <div class="doc-header">
+                        <div class="doc-title">รายละเอียดงบประมาณการดำเนิน</div>
+                        <div class="doc-subtitle">${data.projectName}</div>
+                        <div class="doc-subtitle">……………………………………….</div>
+                        <div class="doc-subtitle">${data.department} จำนวน ${data.grandTotal} บาท</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">ที่</th>
+                                <th>รายการ</th>
+                                <th style="width: 100px;">ราคาต่อหน่วย<br>(บาท)</th>
+                                <th style="width: 80px;">จำนวน</th>
+                                <th style="width: 80px;">หน่วยนับ</th>
+                                <th style="width: 100px;">เป็นเงิน<br>(บาท)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map(item => `
+                                <tr>
+                                    <td class="number">${item.no}</td>
+                                    <td>${item.item}</td>
+                                    <td class="amount">${item.price || '-'}</td>
+                                    <td class="amount">${item.quantity || '-'}</td>
+                                    <td>${item.unit || '-'}</td>
+                                    <td class="amount">${item.total}</td>
+                                </tr>
+                            `).join('')}
+                            ${Array(Math.max(0, 19 - data.items.length)).fill().map(() => `
+                                <tr>
+                                    <td class="number">&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5" style="text-align: right;">รวมเป็นเงิน (${numberToThaiText(parseFloat(data.grandTotal))})</td>
+                                <td class="amount">${data.grandTotal}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    ${data.specialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function generateSingleOrderDocument(data, pageBreak) {
+            const date = '.............. เดือน .......................................... พ.ศ. ...............';
+            const docTypeText = data.docType === 'ซื้อ' ? 'ซื้อสินค้าวัสดุ-อุปกรณ์' : 'จ้างบริการ';
+            
+            return `
+                <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
+                    <div class="doc-header" style="text-align: center; margin-bottom: 10px;">
+                        <div class="doc-title">ใบสั่ง${data.docType}สินค้า</div>
+                    </div>
+                    <div class="doc-header-right" style="text-align: right; margin-bottom: 15px;">
+                        <div class="doc-subtitle">โรงเรียนกระดุมทองวิทยา</div>
+                        <div class="doc-subtitle">102 หมู่ 2 ตำบลหนองหัวช้าง</div>
+                        <div class="doc-subtitle">อำเภอกันทรารมย์ จังหวัดศรีสะเกษ</div>
+                    </div>
+                    <div class="doc-date">วันที่ ${date}</div>
+                    <div class="doc-content">
+                        <p>เรียน .........................................................................................</p>
+                        <p style="text-indent: 30px;">ข้าพเจ้า ${data.director} ตำแหน่ง ผู้อำนวยการโรงเรียนกระดุมทองวิทยา อำเภอกันทรารมย์ จังหวัดศรีสะเกษ มีความประสงค์จะสั่ง${docTypeText}</p>
+                        <p>ใน${data.projectName} เพื่อกิจกรรมงานองค์กร ดังรายการต่อไปนี้</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">ลำดับที่</th>
+                                <th>รายการ</th>
+                                <th style="width: 120px;">จำนวน(สินค้า)</th>
+                                <th style="width: 100px;">หน่วยนับ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items.map(item => `
+                                <tr>
+                                    <td class="number">${item.no}</td>
+                                    <td>${item.item}</td>
+                                    <td class="amount">${item.quantity || '-'}</td>
+                                    <td>${item.unit || '-'}</td>
+                                </tr>
+                            `).join('')}
+                            ${Array(Math.max(0, 15 - data.items.length)).fill().map(() => `
+                                <tr>
+                                    <td class="number">&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div class="note">
+                        <p>หมายเหตุ : กำหนดงบประมาณไม่เกิน ${data.grandTotal} บาท</p>
+                    </div>
+                    <div class="signature-section">
+                        <div class="signature-box">
+                            <div class="signature-line">ลงชื่อ............................................</div>
+                            <div>(${data.officer})</div>
+                            <div>เจ้าหน้าที่</div>
+                        </div>
+                        <div class="signature-box">
+                            <div class="signature-line">ลงชื่อ............................................</div>
+                            <div>(${data.director})</div>
+                            <div>ผู้อำนวยการโรงเรียนกระดุมทองวิทยา</div>
+                        </div>
+                    </div>
+                    ${data.specialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Preview document
+        function previewDocument(type) {
+            if (!validateForm()) return;
+
+            const html = generateDocumentHTML(type);
+            document.getElementById('previewArea').innerHTML = html;
+            document.getElementById('printArea').innerHTML = html;
+            
+            const modalTitle = type === 'detail' ? 'ใบรายละเอียดงบประมาณ' : 'ใบสั่งซื้อ/สั่งจ้าง';
+            document.getElementById('modalTitle').textContent = '📄 ตัวอย่าง' + modalTitle;
+            
+            document.getElementById('previewModal').classList.add('active');
+        }
+
+        // Load history
+        async function loadHistory() {
+            try {
+                showLoading(true);
+
+                const q = window.firestore.query(
+                    window.firestore.collection(window.db, 'purchase-orders'),
+                    window.firestore.orderBy('createdAt', 'desc')
+                );
+
+                const querySnapshot = await window.firestore.getDocs(q);
+                allHistory = [];
+
+                querySnapshot.forEach((doc) => {
+                    allHistory.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Populate filter dropdowns
+                const semesters = [...new Set(allHistory.map(h => h.semester))];
+                const filterSemester = document.getElementById('filterSemester');
+                filterSemester.innerHTML = '<option value="">ทั้งหมด</option>';
+                semesters.forEach(sem => {
+                    filterSemester.innerHTML += `<option value="${sem}">${sem}</option>`;
+                });
+
+                displayHistory(allHistory);
+
+            } catch (error) {
+                console.error('Error loading history:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถโหลดประวัติได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Display history
+        function displayHistory(history) {
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p style="text-align: center; color: #718096; padding: 3rem;">ไม่พบรายการ</p>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(record => {
+                const date = formatThaiDate(record.createdAt);
+                return `
+                    <div class="history-card">
+                        <div class="history-card-header">
+                            <div>
+                                <div class="history-card-title">${record.projectName}</div>
+                                <div class="history-card-meta">${date} | ${record.creatorName}</div>
+                            </div>
+                            <div class="history-card-badge">${record.docType === 'ซื้อ' ? 'ใบสั่งซื้อ' : 'ใบสั่งจ้าง'}</div>
+                        </div>
+                        <div class="history-card-info">
+                            <div><strong>ภาคเรียน:</strong> ${record.semester}</div>
+                            <div><strong>กลุ่มสาระ:</strong> ${record.department}</div>
+                            <div><strong>งบประมาณ:</strong> ${record.grandTotal} บาท</div>
+                            <div><strong>รายการ:</strong> ${record.items.length} รายการ</div>
+                        </div>
+                        <div class="history-card-actions">
+                            <input type="checkbox" class="merge-checkbox-item" data-id="${record.id}" data-department="${record.department}">
+                            <label style="margin-right: 1rem; font-size: 0.85rem;">เลือกรวมพิมพ์</label>
+                            <button class="btn btn-warning btn-small" onclick="loadHistoryToEdit('${record.id}')">
+                                ✏️ แก้ไข
+                            </button>
+                            <button class="btn btn-primary btn-small" onclick="viewHistory('${record.id}', 'detail')">
+                                👁️ ดูใบรายละเอียด
+                            </button>
+                            <button class="btn btn-primary btn-small" onclick="viewHistory('${record.id}', 'order')">
+                                👁️ ดูใบสั่งซื้อ/จ้าง
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="deleteHistory('${record.id}')">
+                                🗑️ ลบ
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Filter history
+        function filterHistory() {
+            const semester = document.getElementById('filterSemester').value;
+            const department = document.getElementById('filterDepartment').value;
+            const docType = document.getElementById('filterDocType').value;
+
+            let filtered = allHistory;
+
+            if (semester) {
+                filtered = filtered.filter(h => h.semester === semester);
+            }
+
+            if (department) {
+                filtered = filtered.filter(h => h.department === department);
+            }
+
+            if (docType) {
+                filtered = filtered.filter(h => h.docType === docType);
+            }
+
+            displayHistory(filtered);
+        }
+
+        // View history
+        async function viewHistory(id, type) {
+            try {
+                const record = allHistory.find(h => h.id === id);
+                if (!record) {
+                    Swal.fire({
+                        title: 'ไม่พบข้อมูล',
+                        text: 'ไม่สามารถหารายการที่ต้องการได้',
+                        icon: 'error'
+                    });
+                    return;
+                }
+
+                const html = generateDocumentHTML(type, record);
+                document.getElementById('previewArea').innerHTML = html;
+                document.getElementById('printArea').innerHTML = html;
+                
+                const modalTitle = type === 'detail' ? 'ใบรายละเอียดงบประมาณ' : 'ใบสั่งซื้อ/สั่งจ้าง';
+                document.getElementById('modalTitle').textContent = '📄 ' + modalTitle;
+                
+                document.getElementById('previewModal').classList.add('active');
+            } catch (error) {
+                console.error('Error viewing history:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: error.message,
+                    icon: 'error'
+                });
+            }
+        }
+
+        // Load history to edit
+        async function loadHistoryToEdit(id) {
+            try {
+                const record = allHistory.find(h => h.id === id);
+                if (!record) {
+                    Swal.fire({
+                        title: 'ไม่พบข้อมูล',
+                        text: 'ไม่สามารถหารายการที่ต้องการได้',
+                        icon: 'error'
+                    });
+                    return;
+                }
+
+                // เปลี่ยนไปที่แท็บสร้างเอกสาร
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.getElementById('createTab').classList.add('active');
+                document.querySelector('.tab[onclick*="create"]').classList.add('active');
+
+                // โหลดข้อมูลเข้าฟอร์ม
+                document.getElementById('semester').value = record.semester || '';
+                document.getElementById('projectName').value = record.projectName || '';
+                document.getElementById('director').value = record.director || '';
+                document.getElementById('officer').value = record.officer || '';
+                document.getElementById('docType').value = record.docType || 'ซื้อ';
+                document.getElementById('creatorName').value = record.creatorName || '';
+                document.getElementById('department').value = record.department || '';
+
+                // ล้างตารางเดิม
+                const tbody = document.getElementById('itemsTableBody');
+                tbody.innerHTML = '';
+
+                // เพิ่มข้อมูลรายการ
+                record.items.forEach((item, index) => {
+                    addRow();
+                    const row = tbody.rows[index];
+                    if (row) {
+                        row.querySelector('.item-input').value = item.item || '';
+                        row.querySelector('.price-input').value = item.price || '';
+                        row.querySelector('.qty-input').value = item.quantity || '';
+                        row.querySelector('.unit-input').value = item.unit || '';
+                        
+                        // คำนวณยอดรวม
+                        const priceInput = row.querySelector('.price-input');
+                        if (priceInput.value) {
+                            calculateTotal(priceInput);
+                        }
+                    }
+                });
+
+                // เพิ่ม row ว่างเพิ่มอีกนิด
+                for (let i = 0; i < 5; i++) {
+                    addRow();
+                }
+
+                updateRowNumbers();
+                calculateGrandTotal();
+
+                // ลบรายการเดิมออกจาก Firebase
+                await window.firestore.deleteDoc(window.firestore.doc(window.db, 'purchase-orders', id));
+
+                // แจ้งเตือน
+                await Swal.fire({
+                    title: 'โหลดข้อมูลสำเร็จ!',
+                    text: 'ข้อมูลพร้อมแก้ไข กรุณาทำการแก้ไขและบันทึกอีกครั้ง',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                // Scroll ขึ้นบน
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Error loading history to edit:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: error.message,
+                    icon: 'error'
+                });
+            }
+        }
+
+        // Delete history
+        async function deleteHistory(id) {
+            const result = await Swal.fire({
+                title: 'ยืนยันการลบ',
+                text: 'ต้องการลบรายการนี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: 'ใช่, ลบเลย',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                showLoading(true);
+                await window.firestore.deleteDoc(window.firestore.doc(window.db, 'purchase-orders', id));
+                
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'ลบรายการเรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
+                await loadHistory();
+            } catch (error) {
+                console.error('Error deleting:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถลบรายการได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Print merged documents
+        async function printMergedDocuments(type) {
+            const checkboxes = document.querySelectorAll('.merge-checkbox-item:checked');
+            
+            if (checkboxes.length === 0) {
+                Swal.fire({
+                    title: 'กรุณาเลือกรายการ',
+                    text: 'กรุณาเลือกรายการที่ต้องการพิมพ์อย่างน้อย 1 รายการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+            const mergedData = allHistory.filter(h => selectedIds.includes(h.id));
+
+            const html = generateDocumentHTML(type, null, true, mergedData);
+            document.getElementById('printArea').innerHTML = html;
+            
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
+        // Print merged single table (รวมในตารางเดียว)
+        async function printMergedSingleTable(type) {
+            const checkboxes = document.querySelectorAll('.merge-checkbox-item:checked');
+            
+            if (checkboxes.length === 0) {
+                Swal.fire({
+                    title: 'กรุณาเลือกรายการ',
+                    text: 'กรุณาเลือกรายการที่ต้องการพิมพ์อย่างน้อย 1 รายการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+            const mergedData = allHistory.filter(h => selectedIds.includes(h.id));
+
+            // รวมรายการทั้งหมดเป็นเอกสารเดียว
+            const allItems = [];
+            let itemCounter = 1;
+            let totalBudget = 0;
+
+            mergedData.forEach(record => {
+                record.items.forEach(item => {
+                    allItems.push({
+                        no: itemCounter++,
+                        item: item.item,
+                        price: item.price,
+                        quantity: item.quantity,
+                        unit: item.unit,
+                        total: item.total
+                    });
+                    totalBudget += parseFloat(item.total) || 0;
+                });
+            });
+
+            // สร้าง combined data
+            const combinedData = {
+                projectName: mergedData.length > 1 ? 
+                    `รวมโครงการ ${mergedData[0].department}` : 
+                    mergedData[0].projectName,
+                department: mergedData[0].department,
+                director: mergedData[0].director,
+                officer: mergedData[0].officer,
+                docType: mergedData[0].docType,
+                creatorName: mergedData[0].creatorName,
+                items: allItems,
+                grandTotal: totalBudget.toFixed(2),
+                specialNote: mergedData[0].specialNote || ''
+            };
+
+            const html = type === 'detail' ? 
+                generateSingleDetailDocument(combinedData, false) : 
+                generateSingleOrderDocument(combinedData, false);
+
+            document.getElementById('printArea').innerHTML = html;
+            
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
+        // Export all data to Excel
+        async function exportAllData() {
+            try {
+                showLoading(true);
+
+                if (allHistory.length === 0) {
+                    await loadHistory();
+                }
+
+                const exportData = [];
+                allHistory.forEach(record => {
+                    record.items.forEach(item => {
+                        exportData.push({
+                            'ภาคเรียน': record.semester,
+                            'โครงการ': record.projectName,
+                            'กลุ่มสาระ': record.department,
+                            'ประเภท': record.docType === 'ซื้อ' ? 'ใบสั่งซื้อ' : 'ใบสั่งจ้าง',
+                            'รายการ': item.item,
+                            'ราคาต่อหน่วย': item.price,
+                            'จำนวน': item.quantity,
+                            'หน่วยนับ': item.unit,
+                            'เป็นเงิน': item.total,
+                            'ผู้ทำรายการ': record.creatorName,
+                            'วันที่บันทึก': formatThaiDate(record.createdAt)
+                        });
+                    });
+                });
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "รายการทั้งหมด");
+                
+                const fileName = `รายการสั่งซื้อ-จ้างทั้งหมด_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'ส่งออกข้อมูลเป็นไฟล์ Excel เรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error exporting:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถส่งออกข้อมูลได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Import price database
+        async function importPriceDatabase(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                showLoading(true);
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                    priceDatabase = {};
+                    rows.slice(1).forEach(row => {
+                        if (row[0]) {
+                            const key = row[0].toLowerCase().trim();
+                            priceDatabase[key] = {
+                                item: row[0],
+                                price: row[1] || '',
+                                unit: row[2] || '',
+                                lastUpdated: new Date().toISOString()
+                            };
+                        }
+                    });
+
+                    await savePriceDatabase();
+                    
+                    await Swal.fire({
+                        title: 'สำเร็จ!',
+                        text: 'นำเข้าฐานข้อมูลราคาเรียบร้อยแล้ว',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+
+            } catch (error) {
+                console.error('Error importing:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถนำเข้าข้อมูลได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+                event.target.value = '';
+            }
+        }
+
+        // Save price database
+        async function savePriceDatabase() {
+            try {
+                await window.firestore.setDoc(
+                    window.firestore.doc(window.db, 'settings', 'price-database'),
+                    { data: priceDatabase },
+                    { merge: true }
+                );
+            } catch (error) {
+                console.error('Error saving price database:', error);
+            }
+        }
+
+        // Load price database
+        async function loadPriceDatabase() {
+            try {
+                const docRef = window.firestore.doc(window.db, 'settings', 'price-database');
+                const docSnap = await window.firestore.getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    priceDatabase = docSnap.data().data || {};
+                }
+            } catch (error) {
+                console.error('Error loading price database:', error);
+            }
+        }
+
+        // Show price database
+        function showPriceDatabase() {
+            const items = Object.values(priceDatabase).sort((a, b) => 
+                a.item.localeCompare(b.item, 'th')
+            );
+
+            // เก็บข้อมูลใน global เพื่อให้ filter ได้
+            window.allPriceItems = items;
+
+            if (items.length === 0) {
+                document.getElementById('priceDbContent').innerHTML = '<p style="text-align: center; color: #718096; padding: 2rem;">ยังไม่มีข้อมูลในฐานข้อมูลราคา</p>';
+            } else {
+                renderPriceDatabase(items);
+            }
+
+            // Clear search box
+            document.getElementById('priceDbSearch').value = '';
+            document.getElementById('priceDbModal').classList.add('active');
+        }
+
+        // Render price database table
+        function renderPriceDatabase(items) {
+            document.getElementById('priceDbContent').innerHTML = `
+                <div style="margin-bottom: 0.5rem; color: #718096;">
+                    แสดง ${items.length} รายการ
+                </div>
+                <table class="price-history-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ลำดับ</th>
+                            <th>รายการ</th>
+                            <th style="width: 120px;">ราคา (บาท)</th>
+                            <th style="width: 100px;">หน่วยนับ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map((item, index) => `
+                            <tr>
+                                <td style="text-align: center;">${index + 1}</td>
+                                <td>${item.item}</td>
+                                <td style="text-align: right;">${item.price}</td>
+                                <td>${item.unit}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Filter price database
+        function filterPriceDatabase() {
+            const searchText = document.getElementById('priceDbSearch').value.toLowerCase().trim();
+            
+            if (!window.allPriceItems) return;
+
+            if (searchText === '') {
+                // แสดงทั้งหมด
+                renderPriceDatabase(window.allPriceItems);
+            } else {
+                // กรองตามคำค้นหา
+                const filtered = window.allPriceItems.filter(item => 
+                    item.item.toLowerCase().includes(searchText) ||
+                    item.price.toString().includes(searchText) ||
+                    item.unit.toLowerCase().includes(searchText)
+                );
+                renderPriceDatabase(filtered);
+            }
+        }
+
+        // Show price history
+        function showPriceHistory() {
+            const priceHistory = {};
+            
+            allHistory.forEach(record => {
+                record.items.forEach(item => {
+                    if (item.item && item.price) {
+                        const key = item.item;
+                        if (!priceHistory[key]) {
+                            priceHistory[key] = [];
+                        }
+                        priceHistory[key].push({
+                            price: item.price,
+                            unit: item.unit,
+                            date: record.createdAt,
+                            project: record.projectName,
+                            department: record.department
+                        });
+                    }
+                });
+            });
+
+            let html = '<div style="background: white; padding: 2rem;">';
+            html += '<h3 style="margin-bottom: 1.5rem;">📜 ประวัติราคาสินค้าที่เคยสั่งซื้อ</h3>';
+
+            Object.keys(priceHistory).sort().forEach(itemName => {
+                const history = priceHistory[itemName].sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                );
+
+                html += `
+                    <div style="margin-bottom: 2rem; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                        <h4 style="color: var(--primary); margin-bottom: 1rem;">${itemName}</h4>
+                        <table class="price-history-table">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>ราคา</th>
+                                    <th>หน่วยนับ</th>
+                                    <th>โครงการ</th>
+                                    <th>กลุ่มสาระ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${history.map(h => `
+                                    <tr>
+                                        <td>${formatThaiDate(h.date)}</td>
+                                        <td style="text-align: right;">${h.price} บาท</td>
+                                        <td>${h.unit}</td>
+                                        <td>${h.project}</td>
+                                        <td>${h.department}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            document.getElementById('priceHistoryArea').innerHTML = html;
+            document.getElementById('priceHistoryModal').classList.add('active');
+        }
+
+        // Print price history
+        function printPriceHistory() {
+            const content = document.getElementById('priceHistoryArea').innerHTML;
+            document.getElementById('printArea').innerHTML = content;
+            
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
+        // Toggle special note
+        function toggleSpecialNote() {
+            specialNoteEnabled = document.getElementById('specialNoteToggle').checked;
+            document.getElementById('specialNoteInput').style.display = specialNoteEnabled ? 'block' : 'none';
+            document.getElementById('specialNoteStatus').textContent = specialNoteEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+            
+            saveAdminSettings();
+        }
+
+        // Save special note
+        async function saveSpecialNote() {
+            specialNoteText = document.getElementById('specialNoteText').value;
+            await saveAdminSettings();
+            
+            await Swal.fire({
+                title: 'สำเร็จ!',
+                text: 'บันทึกข้อความพิเศษเรียบร้อยแล้ว',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        // Save admin settings
+        async function saveAdminSettings() {
+            try {
+                await window.firestore.setDoc(
+                    window.firestore.doc(window.db, 'settings', 'admin'),
+                    {
+                        specialNoteEnabled: specialNoteEnabled,
+                        specialNoteText: specialNoteText
+                    },
+                    { merge: true }
+                );
+            } catch (error) {
+                console.error('Error saving admin settings:', error);
+            }
+        }
+
+        // Load admin settings
+        async function loadAdminSettings() {
+            try {
+                await loadPriceDatabase();
+                
+                const docRef = window.firestore.doc(window.db, 'settings', 'admin');
+                const docSnap = await window.firestore.getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    specialNoteEnabled = data.specialNoteEnabled || false;
+                    specialNoteText = data.specialNoteText || '';
+                    
+                    document.getElementById('specialNoteToggle').checked = specialNoteEnabled;
+                    document.getElementById('specialNoteText').value = specialNoteText;
+                    document.getElementById('specialNoteInput').style.display = specialNoteEnabled ? 'block' : 'none';
+                    document.getElementById('specialNoteStatus').textContent = specialNoteEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+                }
+            } catch (error) {
+                console.error('Error loading admin settings:', error);
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Print document
+        function printDocument() {
+            closeModal('previewModal');
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
+        // Show loading
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('active');
+            } else {
+                loading.classList.remove('active');
+            }
+        }
+
+        // Show toast
+        function showToast(message, type = 'success') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: type === 'error' ? 'error' : 'success',
+                title: message
+            });
+        }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal(this.id);
+                }
+            });
+        });
+
+        // Close modals on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    closeModal(modal.id);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
