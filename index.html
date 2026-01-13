@@ -474,6 +474,41 @@
             flex-wrap: wrap;
         }
 
+        .special-note-display {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: #e6f7ff;
+            border-left: 3px solid #0066cc;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #0066cc;
+            line-height: 1.5;
+        }
+
+        .special-note-display::before {
+            content: '📝 โน้ตพิเศษ: ';
+            font-weight: 600;
+        }
+
+        .tip-box {
+            padding: 0.75rem;
+            background: #fff3cd;
+            border-left: 3px solid #d69e2e;
+            border-radius: 4px;
+            margin-top: 0.75rem;
+        }
+
+        .tip-box p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .tip-box strong {
+            color: #856404;
+        }
+
         /* Filter Section */
         .filter-section {
             background: white;
@@ -1087,6 +1122,11 @@
                                 📄 พิมพ์รวมใบสั่งซื้อ/จ้าง (ตารางเดียว)
                             </button>
                         </div>
+                        <div class="tip-box">
+                            <p>
+                                💡 <strong>เคล็ดลับ:</strong> เมื่อพิมพ์รวม (ตารางเดียว) ระบบจะใช้ข้อมูลโครงการและโน้ตพิเศษจาก<strong>รายการแรกที่คุณเลือก</strong>
+                            </p>
+                        </div>
                     </div>
 
                     <div id="historyList">
@@ -1179,26 +1219,34 @@
                     <!-- Special Note Toggle -->
                     <div class="admin-card">
                         <h3>📝 โน้ตพิเศษในเอกสาร</h3>
-                        <p style="margin-bottom: 1rem; color: #718096;">เปิด/ปิดโหมดเพิ่มข้อความหรือข้อมูลติดต่อพิเศษในเอกสาร</p>
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="specialNoteToggle" onchange="toggleSpecialNote()">
-                                <span class="slider"></span>
-                            </label>
-                            <span id="specialNoteStatus">ปิดใช้งาน</span>
+                        <p style="margin-bottom: 1rem; color: #718096;">
+                            ระบบโน้ตพิเศษได้ย้ายไปจัดการแยกตามรายการแล้ว<br>
+                            คุณสามารถเพิ่มโน้ตพิเศษให้กับแต่ละรายการได้ในหน้า <strong>📚 ประวัติการสั่งซื้อ</strong><br>
+                            โดยคลิกปุ่ม <strong>📝 เพิ่มโน้ต</strong> ในรายการที่ต้องการ
+                        </p>
+                        <div style="padding: 1rem; background: #f7fafc; border-left: 3px solid var(--primary); border-radius: 4px;">
+                            <p style="margin: 0; font-size: 0.9rem;"><strong>วิธีใช้งาน:</strong></p>
+                            <ol style="margin: 0.5rem 0 0 1.5rem; font-size: 0.9rem; line-height: 1.8;">
+                                <li>ไปที่แท็บ "📚 ประวัติการสั่งซื้อ"</li>
+                                <li>เลือกรายการที่ต้องการเพิ่มโน้ต</li>
+                                <li>คลิกปุ่ม "📝 เพิ่มโน้ต"</li>
+                                <li>ระบบจะสร้าง template อัตโนมัติจากข้อมูลผู้ทำรายการและเบอร์โทร</li>
+                                <li>สามารถแก้ไขข้อความได้ตามต้องการ</li>
+                            </ol>
                         </div>
-                        <div id="specialNoteInput" style="display: none;">
-                            <div class="form-group">
-                                <label>ข้อความพิเศษ (จะแสดงเป็นข้อความสีน้ำเงินในเอกสาร)</label>
-                                <textarea class="form-control" id="specialNoteText" rows="3" 
-                                          placeholder="เช่น หมายเหตุ: ติดต่อสอบถามเพิ่มเติม 081-234-5678"></textarea>
-                                <button type="button" class="btn btn-primary btn-small" onclick="useDefaultSpecialNote()" style="margin-top: 0.5rem;">
-                                    📝 ใช้ template เริ่มต้น
-                                </button>
+                        
+                        <!-- ส่วนเก่าที่ไม่ใช้แล้ว แต่เก็บไว้เพื่อความเข้ากันได้ -->
+                        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; opacity: 0.5;">
+                            <p style="font-size: 0.85rem; color: #718096; font-style: italic;">
+                                หมายเหตุ: การตั้งค่าแบบ global ด้านล่างนี้ไม่มีผลต่อเอกสารอีกต่อไปแล้ว
+                            </p>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="specialNoteToggle" onchange="toggleSpecialNote()" disabled>
+                                    <span class="slider"></span>
+                                </label>
+                                <span id="specialNoteStatus">ไม่ใช้งานแล้ว</span>
                             </div>
-                            <button class="btn btn-primary" onclick="saveSpecialNote()">
-                                💾 บันทึกข้อความ
-                            </button>
                         </div>
                     </div>
 
@@ -1666,7 +1714,8 @@
                 department: document.getElementById('department').value,
                 items: [],
                 grandTotal: document.getElementById('grandTotal').textContent,
-                specialNote: specialNoteEnabled ? specialNoteText : ''
+                specialNoteEnabled: false,  // เริ่มต้นปิดไว้ ให้ผู้ใช้เปิดเองทีหลัง
+                specialNote: ''
             };
 
             const tbody = document.getElementById('itemsTableBody');
@@ -2078,6 +2127,8 @@
         }
 
         function generateSingleDetailDocument(data, pageBreak) {
+            const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
+            
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
                     <div class="doc-header">
@@ -2131,7 +2182,7 @@
                         <div>(${data.creatorName})</div>
                         <div>ครูผู้ทำรายการ</div>
                     </div>
-                    ${data.specialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
+                    ${showSpecialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
                 </div>
             `;
         }
@@ -2139,6 +2190,7 @@
         function generateSingleOrderDocument(data, pageBreak) {
             const date = '.............. เดือน .......................................... พ.ศ. ...............';
             const docTypeText = data.docType === 'ซื้อ' ? 'ซื้อสินค้าวัสดุ-อุปกรณ์' : 'จ้างบริการ';
+            const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
@@ -2207,7 +2259,7 @@
                             <div>ผู้อำนวยการโรงเรียนกระดุมทองวิทยา</div>
                         </div>
                     </div>
-                    ${data.specialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
+                    ${showSpecialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
                 </div>
             `;
         }
@@ -2279,12 +2331,18 @@
 
             historyList.innerHTML = history.map(record => {
                 const date = formatThaiDate(record.createdAt);
+                const hasSpecialNote = record.specialNoteEnabled === true;
+                const noteText = hasSpecialNote ? (record.specialNote || '') : '';
+                
                 return `
                     <div class="history-card">
                         <div class="history-card-header">
-                            <div>
+                            <div style="flex: 1;">
                                 <div class="history-card-title">${record.projectName}</div>
                                 <div class="history-card-meta">${date} | ${record.creatorName}</div>
+                                ${hasSpecialNote ? `
+                                    <div class="special-note-display">${noteText}</div>
+                                ` : ''}
                             </div>
                             <div class="history-card-badge">${record.docType === 'ซื้อ' ? 'ใบสั่งซื้อ' : 'ใบสั่งจ้าง'}</div>
                         </div>
@@ -2297,6 +2355,11 @@
                         <div class="history-card-actions">
                             <input type="checkbox" class="merge-checkbox-item" data-id="${record.id}" data-department="${record.department}">
                             <label style="margin-right: 1rem; font-size: 0.85rem;">เลือกรวมพิมพ์</label>
+                            <button class="btn ${hasSpecialNote ? 'btn-success' : 'btn-warning'} btn-small" 
+                                    onclick="toggleSpecialNoteForRecord('${record.id}')"
+                                    title="${hasSpecialNote ? 'แก้ไข/ปิดโน้ตพิเศษ' : 'เปิดโน้ตพิเศษ'}">
+                                ${hasSpecialNote ? '📝 โน้ตเปิดอยู่' : '📝 เพิ่มโน้ต'}
+                            </button>
                             <button class="btn btn-warning btn-small" onclick="loadHistoryToEdit('${record.id}')">
                                 ✏️ แก้ไข
                             </button>
@@ -2313,6 +2376,188 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Toggle special note for specific record
+        async function toggleSpecialNoteForRecord(recordId) {
+            try {
+                showLoading(true);
+
+                const record = allHistory.find(h => h.id === recordId);
+                if (!record) {
+                    throw new Error('ไม่พบรายการ');
+                }
+
+                const currentlyEnabled = record.specialNoteEnabled === true;
+
+                if (currentlyEnabled) {
+                    // มีโน้ตอยู่แล้ว ให้เลือกว่าจะแก้ไขหรือปิด
+                    const { value: action } = await Swal.fire({
+                        title: '📝 จัดการโน้ตพิเศษ',
+                        html: `
+                            <div style="text-align: left;">
+                                <p style="margin-bottom: 1rem;">โน้ตปัจจุบัน:</p>
+                                <div style="padding: 0.75rem; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 1rem;">
+                                    ${record.specialNote}
+                                </div>
+                                <p>ต้องการทำอะไร?</p>
+                            </div>
+                        `,
+                        icon: 'question',
+                        showCancelButton: true,
+                        showDenyButton: true,
+                        confirmButtonColor: '#38a169',
+                        denyButtonColor: '#e53e3e',
+                        cancelButtonColor: '#718096',
+                        confirmButtonText: '✏️ แก้ไข',
+                        denyButtonText: '🗑️ ปิดโน้ต',
+                        cancelButtonText: 'ยกเลิก'
+                    });
+
+                    if (action === true) {
+                        // แก้ไขโน้ต
+                        const { value: newNote, isConfirmed } = await Swal.fire({
+                            title: '✏️ แก้ไขโน้ตพิเศษ',
+                            html: `
+                                <div style="text-align: left;">
+                                    <p style="margin-bottom: 1rem;">แก้ไขข้อความ:</p>
+                                    <textarea id="swal-note-input" class="swal2-input" rows="3" style="width: 100%; height: auto;">${record.specialNote}</textarea>
+                                </div>
+                            `,
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonColor: '#38a169',
+                            cancelButtonColor: '#718096',
+                            confirmButtonText: '💾 บันทึก',
+                            cancelButtonText: 'ยกเลิก',
+                            preConfirm: () => {
+                                const noteInput = document.getElementById('swal-note-input');
+                                return noteInput.value;
+                            }
+                        });
+
+                        if (!isConfirmed || !newNote) {
+                            showLoading(false);
+                            return;
+                        }
+
+                        // Update Firebase
+                        await window.firestore.updateDoc(
+                            window.firestore.doc(window.db, 'purchase-orders', recordId),
+                            {
+                                specialNote: newNote
+                            }
+                        );
+
+                        await Swal.fire({
+                            title: 'สำเร็จ!',
+                            text: 'แก้ไขโน้ตพิเศษเรียบร้อยแล้ว',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                    } else if (action === false) {
+                        // ปิดโน้ต
+                        await window.firestore.updateDoc(
+                            window.firestore.doc(window.db, 'purchase-orders', recordId),
+                            {
+                                specialNoteEnabled: false,
+                                specialNote: ''
+                            }
+                        );
+
+                        await Swal.fire({
+                            title: 'สำเร็จ!',
+                            text: 'ปิดโน้ตพิเศษเรียบร้อยแล้ว',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        // ยกเลิก
+                        showLoading(false);
+                        return;
+                    }
+
+                } else {
+                    // เปิดโน้ตพิเศษและสร้าง template
+                    const creatorName = record.creatorName || '';
+                    const phoneNumber = record.phoneNumber || '';
+
+                    if (!creatorName || !phoneNumber) {
+                        await Swal.fire({
+                            title: 'ข้อมูลไม่ครบถ้วน',
+                            html: 'รายการนี้ไม่มีข้อมูล<br>- ชื่อผู้ทำรายการ<br>- หมายเลขโทรศัพท์<br>ไม่สามารถสร้างโน้ตพิเศษได้',
+                            icon: 'warning',
+                            confirmButtonColor: '#1a365d'
+                        });
+                        showLoading(false);
+                        return;
+                    }
+
+                    const template = `หากสนใจสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
+
+                    const { value: customNote, isConfirmed } = await Swal.fire({
+                        title: '📝 เปิดโน้ตพิเศษ',
+                        html: `
+                            <div style="text-align: left;">
+                                <p style="margin-bottom: 1rem;">ข้อความที่จะแสดงในเอกสาร:</p>
+                                <textarea id="swal-note-input" class="swal2-input" rows="3" style="width: 100%; height: auto;">${template}</textarea>
+                                <p style="margin-top: 1rem; font-size: 0.85rem; color: #718096;">
+                                    💡 ข้อความนี้จะแสดงที่ท้ายเอกสารเป็นสีน้ำเงิน
+                                </p>
+                            </div>
+                        `,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonColor: '#38a169',
+                        cancelButtonColor: '#718096',
+                        confirmButtonText: '✅ เปิดโน้ต',
+                        cancelButtonText: 'ยกเลิก',
+                        preConfirm: () => {
+                            const noteInput = document.getElementById('swal-note-input');
+                            return noteInput.value;
+                        }
+                    });
+
+                    if (!isConfirmed || !customNote) {
+                        showLoading(false);
+                        return;
+                    }
+
+                    // Update Firebase
+                    await window.firestore.updateDoc(
+                        window.firestore.doc(window.db, 'purchase-orders', recordId),
+                        {
+                            specialNoteEnabled: true,
+                            specialNote: customNote
+                        }
+                    );
+
+                    await Swal.fire({
+                        title: 'สำเร็จ!',
+                        text: 'เปิดโน้ตพิเศษเรียบร้อยแล้ว',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+
+                // Reload history to show changes
+                await loadHistory();
+
+            } catch (error) {
+                console.error('❌ Error toggling special note:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    html: `ไม่สามารถแก้ไขโน้ตพิเศษได้<br><br>รายละเอียด: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            } finally {
+                showLoading(false);
+            }
         }
 
         // Filter history
@@ -2558,20 +2803,61 @@
                 });
             });
 
-            // สร้าง combined data
+            // แจ้งเตือนเมื่อเลือกหลายรายการ
+            if (mergedData.length > 1) {
+                const firstRecord = mergedData[0];
+                const hasNote = firstRecord.specialNoteEnabled === true;
+                
+                const result = await Swal.fire({
+                    title: '📄 ยืนยันการพิมพ์รวม',
+                    html: `
+                        <div style="text-align: left;">
+                            <p style="margin-bottom: 1rem;">คุณเลือก <strong>${mergedData.length} รายการ</strong> เพื่อพิมพ์รวมในตารางเดียว</p>
+                            <div style="padding: 1rem; background: #f7fafc; border-left: 3px solid #1a365d; border-radius: 4px; margin-bottom: 1rem;">
+                                <p style="margin: 0; font-weight: 600; margin-bottom: 0.5rem; color: #1a365d;">ข้อมูลที่จะใช้จากรายการแรก:</p>
+                                <ul style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>ชื่อโครงการ:</strong> ${firstRecord.projectName}</li>
+                                    <li><strong>ผู้ทำรายการ:</strong> ${firstRecord.creatorName}</li>
+                                    <li><strong>กลุ่มสาระ:</strong> ${firstRecord.department}</li>
+                                    ${hasNote ? `<li><strong>โน้ตพิเศษ:</strong> ${firstRecord.specialNote.substring(0, 60)}${firstRecord.specialNote.length > 60 ? '...' : ''}</li>` : '<li><strong>โน้ตพิเศษ:</strong> <em style="color: #718096;">ไม่มี</em></li>'}
+                                </ul>
+                            </div>
+                            <p style="font-size: 0.9rem; color: #718096; margin: 0;">
+                                <strong>รายการสินค้า:</strong> จะรวมจากทุกรายการที่เลือก (${allItems.length} รายการ)
+                            </p>
+                        </div>
+                    `,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonColor: '#38a169',
+                    cancelButtonColor: '#718096',
+                    confirmButtonText: '✅ ดำเนินการพิมพ์',
+                    cancelButtonText: 'ยกเลิก',
+                    width: '600px'
+                });
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+            }
+
+            // ใช้ข้อมูลจากรายการแรกที่เลือก
+            const firstRecord = mergedData[0];
+            
+            // สร้าง combined data โดยใช้ข้อมูลโครงการจากรายการแรก
             const combinedData = {
-                projectName: mergedData.length > 1 ? 
-                    `รวมโครงการ ${mergedData[0].department}` : 
-                    mergedData[0].projectName,
-                department: mergedData[0].department,
-                director: mergedData[0].director,
-                officer: mergedData[0].officer,
-                docType: mergedData[0].docType,
-                creatorName: mergedData[0].creatorName,
-                phoneNumber: mergedData[0].phoneNumber || '',
+                projectName: firstRecord.projectName,  // ใช้ชื่อโครงการจากรายการแรก
+                department: firstRecord.department,
+                director: firstRecord.director,
+                officer: firstRecord.officer,
+                docType: firstRecord.docType,
+                creatorName: firstRecord.creatorName,
+                phoneNumber: firstRecord.phoneNumber || '',
                 items: allItems,
                 grandTotal: totalBudget.toFixed(2),
-                specialNote: mergedData[0].specialNote || ''
+                // ใช้โน้ตพิเศษจากรายการแรก (ถ้ามี)
+                specialNoteEnabled: firstRecord.specialNoteEnabled === true,
+                specialNote: firstRecord.specialNoteEnabled === true ? (firstRecord.specialNote || '') : ''
             };
 
             const html = type === 'detail' ? 
