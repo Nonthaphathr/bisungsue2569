@@ -512,25 +512,25 @@
         }
 
         .print-document .doc-title {
-            font-size: 12px;
+            font-size: 18px;
             font-weight: 700;
             margin-bottom: 5px;
         }
 
         .print-document .doc-subtitle {
-            font-size: 10px;
+            font-size: 14px;
             margin-bottom: 3px;
         }
 
         .print-document .doc-date {
-            font-size: 10px;
+            font-size: 14px;
             text-align: right;
             margin-bottom: 10px;
             padding-right: 20px;
         }
 
         .print-document .doc-content {
-            font-size: 10px;
+            font-size: 14px;
             line-height: 1.6;
             margin-bottom: 10px;
         }
@@ -540,7 +540,7 @@
         }
 
         .print-document .special-note {
-            font-size: 9px;
+            font-size: 12px;
             color: #0066cc;
             font-style: italic;
             margin: 5px 0;
@@ -550,34 +550,37 @@
             width: 100%;
             border-collapse: collapse;
             margin: 10px 0;
-            font-size: 10px;
+            font-size: 14px;
         }
 
         .print-document table th,
         .print-document table td {
             border: 1px solid #333;
-            padding: 5px;
-            text-align: left;
+            padding: 5px 3px;
+            text-align: center;
         }
 
         .print-document table th {
             background: #f0f0f0;
             font-weight: 600;
             text-align: center;
+            font-size: 14px;
         }
 
         .print-document table td.number {
             text-align: center;
-            width: 40px;
+            width: 35px;
         }
 
         .print-document table td.amount {
-            text-align: right;
+            text-align: center;
+            padding-right: 5px;
         }
 
         .print-document table tfoot td {
             font-weight: 600;
             background: #f0f0f0;
+            font-size: 14px;
         }
 
         .print-document .signature-section {
@@ -585,7 +588,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 50px;
-            font-size: 10px;
+            font-size: 14px;
         }
 
         .print-document .signature-box {
@@ -606,7 +609,7 @@
 
         .print-document .note {
             margin-top: 15px;
-            font-size: 10px;
+            font-size: 14px;
         }
 
         #printArea {
@@ -764,6 +767,36 @@
         .signature-preview-empty {
             color: #718096;
             font-style: italic;
+        }
+
+        /* Icon buttons for price database */
+        .btn-icon-small {
+            padding: 0.4rem;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon-small:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-icon-edit {
+            background: #d69e2e;
+            color: white;
+        }
+
+        .btn-icon-delete {
+            background: #e53e3e;
+            color: white;
         }
 
         @media print {
@@ -1125,12 +1158,19 @@
 
                     <!-- Import Price Database -->
                     <div class="admin-card">
-                        <h3>📥 นำเข้าฐานข้อมูลราคาสินค้า</h3>
-                        <p style="margin-bottom: 1rem; color: #718096;">นำเข้าไฟล์ Excel เพื่อสร้างฐานข้อมูลราคาสินค้าอ้างอิง</p>
-                        <label class="file-input-label">
-                            📁 เลือกไฟล์ Excel
-                            <input type="file" accept=".xlsx,.xls" onchange="importPriceDatabase(event)">
-                        </label>
+                        <h3>📥 จัดการฐานข้อมูลราคาสินค้า</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">
+                            นำเข้าไฟล์ Excel เพื่อสร้างฐานข้อมูลราคาสินค้าอ้างอิง หรือคลิก "ดูฐานข้อมูลราคา" เพื่อเพิ่ม/แก้ไข/ลบรายการสินค้า
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <label class="file-input-label">
+                                📁 นำเข้าไฟล์ Excel
+                                <input type="file" accept=".xlsx,.xls" onchange="importPriceDatabase(event)">
+                            </label>
+                            <button class="btn btn-success" onclick="showPriceDatabase()">
+                                💰 ดูฐานข้อมูลราคา
+                            </button>
+                        </div>
                         <p style="margin-top: 1rem; font-size: 0.85rem; color: #718096;">
                             รูปแบบไฟล์: คอลัมน์ที่ 1 = รายการสินค้า, คอลัมน์ที่ 2 = ราคา, คอลัมน์ที่ 3 = หน่วยนับ
                         </p>
@@ -1200,11 +1240,14 @@
                 <button class="modal-close" onclick="closeModal('priceDbModal')">&times;</button>
             </div>
             <div class="modal-body" style="background: white; padding: 1.5rem;">
-                <div style="margin-bottom: 1rem;">
+                <div style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center;">
                     <input type="text" id="priceDbSearch" class="form-control" 
                            placeholder="🔍 ค้นหารายการสินค้า..." 
                            oninput="filterPriceDatabase()"
                            style="max-width: 400px;">
+                    <button class="btn btn-success btn-small" onclick="addNewPriceItem()">
+                        ➕ เพิ่มสินค้าใหม่
+                    </button>
                 </div>
                 <div id="priceDbContent">
                     <!-- Price database will be loaded here -->
@@ -1229,6 +1272,35 @@
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="closeModal('priceHistoryModal')">ปิด</button>
                 <button class="btn btn-success" onclick="printPriceHistory()">🖨️ พิมพ์ประวัติราคา</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal-overlay" id="editItemModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="editItemModalTitle">✏️ แก้ไขข้อมูลสินค้า</h3>
+                <button class="modal-close" onclick="closeModal('editItemModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="background: white; padding: 2rem;">
+                <input type="hidden" id="editItemKey">
+                <div class="form-group">
+                    <label>รายการสินค้า <span style="color: red;">*</span></label>
+                    <input type="text" class="form-control" id="editItemName" required>
+                </div>
+                <div class="form-group">
+                    <label>ราคา (บาท) <span style="color: red;">*</span></label>
+                    <input type="number" class="form-control" id="editItemPrice" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>หน่วยนับ <span style="color: red;">*</span></label>
+                    <input type="text" class="form-control" id="editItemUnit" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('editItemModal')">ยกเลิก</button>
+                <button class="btn btn-success" onclick="saveEditedItem()">💾 บันทึก</button>
             </div>
         </div>
     </div>
@@ -1992,40 +2064,40 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 40px;">ที่</th>
+                                <th style="width: 30px;">ที่</th>
                                 <th>รายการ</th>
-                                <th style="width: 100px;">ราคาต่อหน่วย<br>(บาท)</th>
-                                <th style="width: 80px;">จำนวน</th>
-                                <th style="width: 80px;">หน่วยนับ</th>
-                                <th style="width: 100px;">เป็นเงิน<br>(บาท)</th>
+                                <th style="width: 85px;">ราคาต่อหน่วย<br>(บาท)</th>
+                                <th style="width: 60px;">จำนวน</th>
+                                <th style="width: 75px;">หน่วยนับ</th>
+                                <th style="width: 85px;">เป็นเงิน<br>(บาท)</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${data.items.map(item => `
                                 <tr>
-                                    <td class="number">${item.no}</td>
-                                    <td>${item.item}</td>
-                                    <td class="amount">${item.price || '-'}</td>
-                                    <td class="amount">${item.quantity || '-'}</td>
-                                    <td>${item.unit || '-'}</td>
-                                    <td class="amount">${item.total}</td>
+                                    <td style="text-align: center;">${item.no}</td>
+                                    <td style="text-align: left;">${item.item}</td>
+                                    <td style="text-align: center;">${item.price || '-'}</td>
+                                    <td style="text-align: center;">${item.quantity || '-'}</td>
+                                    <td style="text-align: center;">${item.unit || '-'}</td>
+                                    <td style="text-align: center;">${item.total}</td>
                                 </tr>
                             `).join('')}
                             ${Array(Math.max(0, 19 - data.items.length)).fill().map(() => `
                                 <tr>
-                                    <td class="number">&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
+                                    <td style="text-align: left;">&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="5" style="text-align: right;">รวมเป็นเงิน (${numberToThaiText(parseFloat(data.grandTotal))})</td>
-                                <td class="amount">${data.grandTotal}</td>
+                                <td style="text-align: center;">${data.grandTotal}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -2062,27 +2134,27 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 60px;">ลำดับที่</th>
+                                <th style="width: 50px;">ลำดับที่</th>
                                 <th>รายการ</th>
-                                <th style="width: 120px;">จำนวน(สินค้า)</th>
-                                <th style="width: 100px;">หน่วยนับ</th>
+                                <th style="width: 100px;">จำนวน(สินค้า)</th>
+                                <th style="width: 90px;">หน่วยนับ</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${data.items.map(item => `
                                 <tr>
-                                    <td class="number">${item.no}</td>
-                                    <td>${item.item}</td>
-                                    <td class="amount">${item.quantity || '-'}</td>
-                                    <td>${item.unit || '-'}</td>
+                                    <td style="text-align: center;">${item.no}</td>
+                                    <td style="text-align: left;">${item.item}</td>
+                                    <td style="text-align: center;">${item.quantity || '-'}</td>
+                                    <td style="text-align: center;">${item.unit || '-'}</td>
                                 </tr>
                             `).join('')}
                             ${Array(Math.max(0, 15 - data.items.length)).fill().map(() => `
                                 <tr>
-                                    <td class="number">&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
+                                    <td style="text-align: left;">&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
+                                    <td style="text-align: center;">&nbsp;</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -2653,19 +2725,30 @@
                         <tr>
                             <th style="width: 60px;">ลำดับ</th>
                             <th>รายการ</th>
-                            <th style="width: 120px;">ราคา (บาท)ต่อหน่วย</th>
+                            <th style="width: 120px;">ราคา (บาท)</th>
                             <th style="width: 100px;">หน่วยนับ</th>
+                            <th style="width: 100px;">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${items.map((item, index) => `
+                        ${items.map((item, index) => {
+                            const key = item.item.toLowerCase().trim();
+                            return `
                             <tr>
                                 <td style="text-align: center;">${index + 1}</td>
                                 <td>${item.item}</td>
                                 <td style="text-align: right;">${item.price}</td>
                                 <td>${item.unit}</td>
+                                <td style="text-align: center;">
+                                    <button class="btn-icon-small btn-icon-edit" onclick="editPriceItem('${key.replace(/'/g, "\\'")}')">
+                                        ✏️
+                                    </button>
+                                    <button class="btn-icon-small btn-icon-delete" onclick="deletePriceItem('${key.replace(/'/g, "\\'")}')">
+                                        🗑️
+                                    </button>
+                                </td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             `;
@@ -2688,6 +2771,175 @@
                     item.unit.toLowerCase().includes(searchText)
                 );
                 renderPriceDatabase(filtered);
+            }
+        }
+
+        // Edit price item
+        function editPriceItem(key) {
+            const item = priceDatabase[key];
+            if (!item) {
+                Swal.fire({
+                    title: 'ไม่พบข้อมูล',
+                    text: 'ไม่สามารถหารายการที่ต้องการได้',
+                    icon: 'error'
+                });
+                return;
+            }
+
+            // Update modal title
+            document.getElementById('editItemModalTitle').textContent = '✏️ แก้ไขข้อมูลสินค้า';
+
+            // Set values in edit modal
+            document.getElementById('editItemKey').value = key;
+            document.getElementById('editItemName').value = item.item;
+            document.getElementById('editItemPrice').value = item.price;
+            document.getElementById('editItemUnit').value = item.unit;
+
+            // Show modal
+            document.getElementById('editItemModal').classList.add('active');
+        }
+
+        // Add new price item
+        function addNewPriceItem() {
+            // Update modal title
+            document.getElementById('editItemModalTitle').textContent = '➕ เพิ่มสินค้าใหม่';
+
+            // Clear form
+            document.getElementById('editItemKey').value = '';
+            document.getElementById('editItemName').value = '';
+            document.getElementById('editItemPrice').value = '';
+            document.getElementById('editItemUnit').value = '';
+
+            // Show modal
+            document.getElementById('editItemModal').classList.add('active');
+        }
+
+        // Save edited item
+        async function saveEditedItem() {
+            const oldKey = document.getElementById('editItemKey').value;
+            const newName = document.getElementById('editItemName').value.trim();
+            const newPrice = document.getElementById('editItemPrice').value.trim();
+            const newUnit = document.getElementById('editItemUnit').value.trim();
+
+            if (!newName || !newPrice || !newUnit) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                const newKey = newName.toLowerCase().trim();
+
+                // If name changed, delete old key
+                if (oldKey !== newKey) {
+                    delete priceDatabase[oldKey];
+                }
+
+                // Update or create new entry
+                priceDatabase[newKey] = {
+                    item: newName,
+                    price: newPrice,
+                    unit: newUnit,
+                    lastUpdated: new Date().toISOString()
+                };
+
+                await savePriceDatabase();
+
+                // Refresh display
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+                window.allPriceItems = items;
+                renderPriceDatabase(items);
+
+                closeModal('editItemModal');
+
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'แก้ไขข้อมูลเรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error('Error saving edited item:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถบันทึกข้อมูลได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Delete price item
+        async function deletePriceItem(key) {
+            const item = priceDatabase[key];
+            if (!item) return;
+
+            const result = await Swal.fire({
+                title: 'ยืนยันการลบ',
+                html: `ต้องการลบรายการ<br><strong>"${item.item}"</strong><br>หรือไม่?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: 'ใช่, ลบเลย',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                showLoading(true);
+
+                delete priceDatabase[key];
+                await savePriceDatabase();
+
+                // Refresh display
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+                window.allPriceItems = items;
+
+                // Re-filter if search is active
+                const searchText = document.getElementById('priceDbSearch').value.toLowerCase().trim();
+                if (searchText) {
+                    const filtered = items.filter(item => 
+                        item.item.toLowerCase().includes(searchText) ||
+                        item.price.toString().includes(searchText) ||
+                        item.unit.toLowerCase().includes(searchText)
+                    );
+                    renderPriceDatabase(filtered);
+                } else {
+                    renderPriceDatabase(items);
+                }
+
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'ลบรายการเรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถลบรายการได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
             }
         }
 
@@ -2789,7 +3041,7 @@
                 return;
             }
             
-            const template = `หากมีข้อสงสัยเกี่ยวกับสินค้าสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
+            const template = `หากสนใจสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
             document.getElementById('specialNoteText').value = template;
             
             Swal.fire({
