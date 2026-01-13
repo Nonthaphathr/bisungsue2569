@@ -2653,7 +2653,7 @@
                         <tr>
                             <th style="width: 60px;">ลำดับ</th>
                             <th>รายการ</th>
-                            <th style="width: 120px;">ราคา (บาท)</th>
+                            <th style="width: 120px;">ราคา (บาท)ต่อหน่วย</th>
                             <th style="width: 100px;">หน่วยนับ</th>
                         </tr>
                     </thead>
@@ -2789,7 +2789,7 @@
                 return;
             }
             
-            const template = `หากสนใจสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
+            const template = `หากมีข้อสงสัยเกี่ยวกับสินค้าสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
             document.getElementById('specialNoteText').value = template;
             
             Swal.fire({
