@@ -592,6 +592,13 @@
             text-align: center;
         }
 
+        .print-document .signature-box img {
+            max-width: 150px;
+            max-height: 60px;
+            margin: 5px auto;
+            display: block;
+        }
+
         .print-document .signature-line {
             margin-top: 40px;
             margin-bottom: 5px;
@@ -736,6 +743,27 @@
 
         input:checked + .slider:before {
             transform: translateX(26px);
+        }
+
+        /* Signature Preview */
+        .signature-preview {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .signature-preview img {
+            max-width: 300px;
+            max-height: 150px;
+            margin: 0.5rem auto;
+            display: block;
+        }
+
+        .signature-preview-empty {
+            color: #718096;
+            font-style: italic;
         }
 
         @media print {
@@ -1039,6 +1067,53 @@
                 <div class="section">
                     <div class="section-title">⚙️ ระบบแอดมิน</div>
 
+                    <!-- Digital Signature Management -->
+                    <div class="admin-card">
+                        <h3>✍️ จัดการลายเซ็นดิจิทัล</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">อัปโหลดลายเซ็นดิจิทัล (รูปภาพ PNG) เพื่อแสดงในเอกสารใบสั่งซื้อ/จ้าง</p>
+                        
+                        <!-- Enable/Disable Digital Signature -->
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="digitalSignatureToggle" onchange="toggleDigitalSignature()">
+                                <span class="slider"></span>
+                            </label>
+                            <span id="digitalSignatureStatus">ปิดใช้งาน</span>
+                        </div>
+
+                        <div id="digitalSignatureInputs" style="display: none;">
+                            <!-- Director Signature -->
+                            <div style="margin-bottom: 2rem;">
+                                <h4 style="margin-bottom: 0.5rem;">📝 ลายเซ็นผู้อำนวยการ</h4>
+                                <label class="file-input-label">
+                                    📁 เลือกไฟล์ลายเซ็น (PNG)
+                                    <input type="file" accept="image/png" onchange="uploadSignature(event, 'director')">
+                                </label>
+                                <div class="signature-preview" id="directorSignaturePreview">
+                                    <div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>
+                                </div>
+                                <button class="btn btn-danger btn-small" onclick="deleteSignature('director')" style="margin-top: 0.5rem;">
+                                    🗑️ ลบลายเซ็น
+                                </button>
+                            </div>
+
+                            <!-- Officer Signature -->
+                            <div style="margin-bottom: 1rem;">
+                                <h4 style="margin-bottom: 0.5rem;">📝 ลายเซ็นเจ้าหน้าที่พัสดุ</h4>
+                                <label class="file-input-label">
+                                    📁 เลือกไฟล์ลายเซ็น (PNG)
+                                    <input type="file" accept="image/png" onchange="uploadSignature(event, 'officer')">
+                                </label>
+                                <div class="signature-preview" id="officerSignaturePreview">
+                                    <div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>
+                                </div>
+                                <button class="btn btn-danger btn-small" onclick="deleteSignature('officer')" style="margin-top: 0.5rem;">
+                                    🗑️ ลบลายเซ็น
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Export Data -->
                     <div class="admin-card">
                         <h3>📤 ส่งออกข้อมูล</h3>
@@ -1077,7 +1152,7 @@
                                 <label>ข้อความพิเศษ (จะแสดงเป็นข้อความสีน้ำเงินในเอกสาร)</label>
                                 <textarea class="form-control" id="specialNoteText" rows="3" 
                                           placeholder="เช่น หมายเหตุ: ติดต่อสอบถามเพิ่มเติม 081-234-5678"></textarea>
-                                <button type="button" class="btn btn-outline" style="margin-top: 0.5rem;" onclick="useDefaultSpecialNote()">
+                                <button type="button" class="btn btn-primary btn-small" onclick="useDefaultSpecialNote()" style="margin-top: 0.5rem;">
                                     📝 ใช้ template เริ่มต้น
                                 </button>
                             </div>
@@ -1219,6 +1294,9 @@
         let priceDatabase = {};
         let specialNoteEnabled = false;
         let specialNoteText = '';
+        let digitalSignatureEnabled = false;
+        let directorSignature = '';
+        let officerSignature = '';
 
         // Tab switching
         async function switchTab(tabName) {
@@ -2012,19 +2090,22 @@
                     <div class="note">
                         <p>หมายเหตุ : กำหนดงบประมาณไม่เกิน ${data.grandTotal} บาท</p>
                     </div>
-                    <div style="margin-top: 30px; margin-bottom: 20px; text-align: center;">
-                        <div style="margin-bottom: 5px;">ลงชื่อ ...........................................</div>
-                        <div>(${data.creatorName})</div>
-                        <div>ครูผู้ทำรายการ</div>
-                    </div>
                     <div class="signature-section">
                         <div class="signature-box">
-                            <div class="signature-line">ลงชื่อ............................................</div>
+                            ${digitalSignatureEnabled && officerSignature ? `
+                                <img src="${officerSignature}" alt="ลายเซ็นเจ้าหน้าที่" />
+                            ` : `
+                                <div class="signature-line">ลงชื่อ............................................</div>
+                            `}
                             <div>(${data.officer})</div>
                             <div>เจ้าหน้าที่</div>
                         </div>
                         <div class="signature-box">
-                            <div class="signature-line">ลงชื่อ............................................</div>
+                            ${digitalSignatureEnabled && directorSignature ? `
+                                <img src="${directorSignature}" alt="ลายเซ็นผู้อำนวยการ" />
+                            ` : `
+                                <div class="signature-line">ลงชื่อ............................................</div>
+                            `}
                             <div>(${data.director})</div>
                             <div>ผู้อำนวยการโรงเรียนกระดุมทองวิทยา</div>
                         </div>
@@ -2693,7 +2774,6 @@
             saveAdminSettings();
         }
 
-        // Save special note
         // Use default special note template
         function useDefaultSpecialNote() {
             const creatorName = document.getElementById('creatorName').value;
@@ -2734,6 +2814,149 @@
             });
         }
 
+        // ===== DIGITAL SIGNATURE FUNCTIONS =====
+
+        // Toggle digital signature
+        function toggleDigitalSignature() {
+            digitalSignatureEnabled = document.getElementById('digitalSignatureToggle').checked;
+            document.getElementById('digitalSignatureInputs').style.display = digitalSignatureEnabled ? 'block' : 'none';
+            document.getElementById('digitalSignatureStatus').textContent = digitalSignatureEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+            
+            saveAdminSettings();
+        }
+
+        // Upload signature
+        async function uploadSignature(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file type
+            if (file.type !== 'image/png') {
+                Swal.fire({
+                    title: 'ไฟล์ไม่ถูกต้อง',
+                    text: 'กรุณาเลือกไฟล์ PNG เท่านั้น',
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+                event.target.value = '';
+                return;
+            }
+
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({
+                    title: 'ไฟล์ใหญ่เกินไป',
+                    text: 'กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 2MB',
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+                event.target.value = '';
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                // Convert to base64
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const base64 = e.target.result;
+
+                    if (type === 'director') {
+                        directorSignature = base64;
+                        updateSignaturePreview('director', base64);
+                    } else if (type === 'officer') {
+                        officerSignature = base64;
+                        updateSignaturePreview('officer', base64);
+                    }
+
+                    await saveAdminSettings();
+
+                    await Swal.fire({
+                        title: 'สำเร็จ!',
+                        text: 'อัปโหลดลายเซ็นเรียบร้อยแล้ว',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    showLoading(false);
+                };
+                reader.readAsDataURL(file);
+
+            } catch (error) {
+                console.error('Error uploading signature:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถอัปโหลดลายเซ็นได้: ' + error.message,
+                    icon: 'error'
+                });
+                showLoading(false);
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        // Update signature preview
+        function updateSignaturePreview(type, base64) {
+            const previewId = type === 'director' ? 'directorSignaturePreview' : 'officerSignaturePreview';
+            const preview = document.getElementById(previewId);
+            
+            if (base64) {
+                preview.innerHTML = `<img src="${base64}" alt="ตัวอย่างลายเซ็น" />`;
+            } else {
+                preview.innerHTML = '<div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>';
+            }
+        }
+
+        // Delete signature
+        async function deleteSignature(type) {
+            const result = await Swal.fire({
+                title: 'ยืนยันการลบ',
+                text: 'ต้องการลบลายเซ็นนี้หรือไม่?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: 'ใช่, ลบเลย',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                showLoading(true);
+
+                if (type === 'director') {
+                    directorSignature = '';
+                    updateSignaturePreview('director', '');
+                } else if (type === 'officer') {
+                    officerSignature = '';
+                    updateSignaturePreview('officer', '');
+                }
+
+                await saveAdminSettings();
+
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'ลบลายเซ็นเรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error('Error deleting signature:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถลบลายเซ็นได้: ' + error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
         // Save admin settings
         async function saveAdminSettings() {
             try {
@@ -2741,7 +2964,10 @@
                     window.firestore.doc(window.db, 'settings', 'admin'),
                     {
                         specialNoteEnabled: specialNoteEnabled,
-                        specialNoteText: specialNoteText
+                        specialNoteText: specialNoteText,
+                        digitalSignatureEnabled: digitalSignatureEnabled,
+                        directorSignature: directorSignature,
+                        officerSignature: officerSignature
                     },
                     { merge: true }
                 );
@@ -2760,13 +2986,27 @@
                 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    
+                    // Special note
                     specialNoteEnabled = data.specialNoteEnabled || false;
                     specialNoteText = data.specialNoteText || '';
-                    
                     document.getElementById('specialNoteToggle').checked = specialNoteEnabled;
                     document.getElementById('specialNoteText').value = specialNoteText;
                     document.getElementById('specialNoteInput').style.display = specialNoteEnabled ? 'block' : 'none';
                     document.getElementById('specialNoteStatus').textContent = specialNoteEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+
+                    // Digital signature
+                    digitalSignatureEnabled = data.digitalSignatureEnabled || false;
+                    directorSignature = data.directorSignature || '';
+                    officerSignature = data.officerSignature || '';
+                    
+                    document.getElementById('digitalSignatureToggle').checked = digitalSignatureEnabled;
+                    document.getElementById('digitalSignatureInputs').style.display = digitalSignatureEnabled ? 'block' : 'none';
+                    document.getElementById('digitalSignatureStatus').textContent = digitalSignatureEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+                    
+                    // Update previews
+                    updateSignaturePreview('director', directorSignature);
+                    updateSignaturePreview('officer', officerSignature);
                 }
             } catch (error) {
                 console.error('Error loading admin settings:', error);
