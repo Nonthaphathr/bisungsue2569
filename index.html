@@ -1340,9 +1340,34 @@
 
         console.log('Firebase initialized successfully!');
 
+        // ตรวจสอบสถานะการเชื่อมต่อ Firebase
+        let firebaseReady = false;
+
         // Load initial data
-        window.addEventListener('DOMContentLoaded', () => {
-            loadAdminSettings();
+        window.addEventListener('DOMContentLoaded', async () => {
+            // รอให้ Firebase พร้อมใช้งาน
+            let attempts = 0;
+            while (!window.db && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (window.db && window.firestore) {
+                firebaseReady = true;
+                console.log('✅ Firebase พร้อมใช้งาน');
+            } else {
+                firebaseReady = false;
+                console.error('❌ Firebase ไม่พร้อมใช้งาน');
+                
+                Swal.fire({
+                    title: 'คำเตือน!',
+                    html: 'ระบบไม่สามารถเชื่อมต่อกับ Firebase ได้<br>ฟังก์ชันบางส่วนอาจใช้งานไม่ได้<br><br>กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+            }
+
+            await loadAdminSettings();
             
             // Load form from localStorage first
             loadFormFromLocalStorage();
@@ -2624,45 +2649,79 @@
 
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-                    priceDatabase = {};
-                    rows.slice(1).forEach(row => {
-                        if (row[0]) {
-                            const key = row[0].toLowerCase().trim();
-                            priceDatabase[key] = {
-                                item: row[0],
-                                price: row[1] || '',
-                                unit: row[2] || '',
-                                lastUpdated: new Date().toISOString()
-                            };
-                        }
-                    });
+                        const newPriceDatabase = {};
+                        let importCount = 0;
+                        
+                        rows.slice(1).forEach(row => {
+                            if (row[0]) {
+                                const key = row[0].toLowerCase().trim();
+                                newPriceDatabase[key] = {
+                                    item: row[0],
+                                    price: row[1] || '',
+                                    unit: row[2] || '',
+                                    lastUpdated: new Date().toISOString()
+                                };
+                                importCount++;
+                            }
+                        });
 
-                    await savePriceDatabase();
+                        priceDatabase = newPriceDatabase;
+                        
+                        // Save to Firebase
+                        await savePriceDatabase();
+                        
+                        await Swal.fire({
+                            title: 'สำเร็จ!',
+                            html: `นำเข้าฐานข้อมูลราคาสำเร็จ<br>จำนวน ${importCount} รายการ<br>และบันทึกลง Firebase เรียบร้อยแล้ว`,
+                            icon: 'success',
+                            confirmButtonColor: '#1a365d'
+                        });
+                        
+                        showLoading(false);
+                    } catch (error) {
+                        console.error('❌ Error processing Excel file:', error);
+                        showLoading(false);
+                        
+                        Swal.fire({
+                            title: 'เกิดข้อผิดพลาด!',
+                            html: `ไม่สามารถประมวลผลไฟล์ Excel ได้<br><br>รายละเอียด: ${error.message}`,
+                            icon: 'error',
+                            confirmButtonColor: '#1a365d'
+                        });
+                    }
+                };
+                
+                reader.onerror = (error) => {
+                    console.error('❌ Error reading file:', error);
+                    showLoading(false);
                     
-                    await Swal.fire({
-                        title: 'สำเร็จ!',
-                        text: 'นำเข้าฐานข้อมูลราคาเรียบร้อยแล้ว',
-                        icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
+                    Swal.fire({
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: 'ไม่สามารถอ่านไฟล์ได้',
+                        icon: 'error',
+                        confirmButtonColor: '#1a365d'
                     });
                 };
+                
                 reader.readAsArrayBuffer(file);
 
             } catch (error) {
-                console.error('Error importing:', error);
+                console.error('❌ Error importing:', error);
+                showLoading(false);
+                
                 Swal.fire({
                     title: 'เกิดข้อผิดพลาด!',
-                    text: 'ไม่สามารถนำเข้าข้อมูลได้: ' + error.message,
-                    icon: 'error'
+                    html: `ไม่สามารถนำเข้าข้อมูลได้<br><br>รายละเอียด: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
                 });
             } finally {
-                showLoading(false);
                 event.target.value = '';
             }
         }
@@ -2670,48 +2729,113 @@
         // Save price database
         async function savePriceDatabase() {
             try {
+                if (!window.db || !window.firestore) {
+                    throw new Error('Firebase ยังไม่พร้อมใช้งาน กรุณารอสักครู่แล้วลองใหม่');
+                }
+
+                console.log('💾 กำลังบันทึกฐานข้อมูลราคา...', {
+                    itemCount: Object.keys(priceDatabase).length,
+                    sample: Object.keys(priceDatabase).slice(0, 3)
+                });
+
+                const docRef = window.firestore.doc(window.db, 'settings', 'price-database');
+                
                 await window.firestore.setDoc(
-                    window.firestore.doc(window.db, 'settings', 'price-database'),
-                    { data: priceDatabase },
-                    { merge: true }
+                    docRef,
+                    { data: priceDatabase, lastUpdated: new Date().toISOString() }
                 );
+
+                console.log('✅ บันทึกฐานข้อมูลราคาสำเร็จ');
+                
+                // ตรวจสอบว่าข้อมูลถูกบันทึกจริงหรือไม่
+                const verifyDoc = await window.firestore.getDoc(docRef);
+                if (verifyDoc.exists()) {
+                    const savedData = verifyDoc.data();
+                    console.log('✔️ ยืนยัน: พบข้อมูลใน Firebase', {
+                        itemCount: Object.keys(savedData.data || {}).length,
+                        lastUpdated: savedData.lastUpdated
+                    });
+                } else {
+                    console.error('❌ ตรวจสอบไม่พบข้อมูลใน Firebase หลังบันทึก!');
+                    throw new Error('ข้อมูลไม่ถูกบันทึกใน Firebase');
+                }
+
             } catch (error) {
-                console.error('Error saving price database:', error);
+                console.error('❌ Error saving price database:', error);
+                throw error; // Re-throw error เพื่อให้ฟังก์ชันที่เรียกรู้ว่ามีปัญหา
             }
         }
 
         // Load price database
         async function loadPriceDatabase() {
             try {
+                if (!window.db || !window.firestore) {
+                    console.warn('⚠️ Firebase ยังไม่พร้อมใช้งาน');
+                    priceDatabase = {};
+                    return;
+                }
+
+                console.log('📥 กำลังโหลดฐานข้อมูลราคาจาก Firebase...');
+
                 const docRef = window.firestore.doc(window.db, 'settings', 'price-database');
                 const docSnap = await window.firestore.getDoc(docRef);
                 
                 if (docSnap.exists()) {
-                    priceDatabase = docSnap.data().data || {};
+                    const loadedData = docSnap.data();
+                    priceDatabase = loadedData.data || {};
+                    console.log(`✅ โหลดฐานข้อมูลราคาสำเร็จ`, {
+                        itemCount: Object.keys(priceDatabase).length,
+                        lastUpdated: loadedData.lastUpdated,
+                        sample: Object.keys(priceDatabase).slice(0, 3)
+                    });
+                } else {
+                    priceDatabase = {};
+                    console.log('📝 ยังไม่มีฐานข้อมูลราคา - เริ่มต้นใหม่');
                 }
             } catch (error) {
-                console.error('Error loading price database:', error);
+                console.error('❌ Error loading price database:', error);
+                priceDatabase = {};
+                throw error; // Re-throw เพื่อให้ฟังก์ชันที่เรียกรู้ว่ามีปัญหา
             }
         }
 
         // Show price database
-        function showPriceDatabase() {
-            const items = Object.values(priceDatabase).sort((a, b) => 
-                a.item.localeCompare(b.item, 'th')
-            );
+        async function showPriceDatabase() {
+            try {
+                showLoading(true);
 
-            // เก็บข้อมูลใน global เพื่อให้ filter ได้
-            window.allPriceItems = items;
+                // โหลดข้อมูลล่าสุดจาก Firebase ก่อนแสดง
+                await loadPriceDatabase();
 
-            if (items.length === 0) {
-                document.getElementById('priceDbContent').innerHTML = '<p style="text-align: center; color: #718096; padding: 2rem;">ยังไม่มีข้อมูลในฐานข้อมูลราคา</p>';
-            } else {
-                renderPriceDatabase(items);
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+
+                // เก็บข้อมูลใน global เพื่อให้ filter ได้
+                window.allPriceItems = items;
+
+                if (items.length === 0) {
+                    document.getElementById('priceDbContent').innerHTML = '<p style="text-align: center; color: #718096; padding: 2rem;">ยังไม่มีข้อมูลในฐานข้อมูลราคา</p>';
+                } else {
+                    renderPriceDatabase(items);
+                }
+
+                // Clear search box
+                document.getElementById('priceDbSearch').value = '';
+                document.getElementById('priceDbModal').classList.add('active');
+
+                showLoading(false);
+            } catch (error) {
+                console.error('❌ Error loading price database:', error);
+                showLoading(false);
+                
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    html: `ไม่สามารถโหลดฐานข้อมูลราคาได้<br><br>รายละเอียด: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
             }
-
-            // Clear search box
-            document.getElementById('priceDbSearch').value = '';
-            document.getElementById('priceDbModal').classList.add('active');
         }
 
         // Render price database table
@@ -2821,6 +2945,13 @@
             const newPrice = document.getElementById('editItemPrice').value.trim();
             const newUnit = document.getElementById('editItemUnit').value.trim();
 
+            console.log('📝 กำลังบันทึกการแก้ไข:', {
+                oldKey: oldKey,
+                newName: newName,
+                newPrice: newPrice,
+                newUnit: newUnit
+            });
+
             if (!newName || !newPrice || !newUnit) {
                 Swal.fire({
                     title: 'ข้อมูลไม่ครบถ้วน',
@@ -2836,9 +2967,16 @@
 
                 const newKey = newName.toLowerCase().trim();
 
+                console.log('🔄 ก่อนแก้ไข:', {
+                    totalItems: Object.keys(priceDatabase).length,
+                    hasOldKey: oldKey in priceDatabase,
+                    oldData: priceDatabase[oldKey]
+                });
+
                 // If name changed, delete old key
-                if (oldKey !== newKey) {
+                if (oldKey !== newKey && oldKey !== '') {
                     delete priceDatabase[oldKey];
+                    console.log('🗑️ ลบ key เก่า:', oldKey);
                 }
 
                 // Update or create new entry
@@ -2849,7 +2987,16 @@
                     lastUpdated: new Date().toISOString()
                 };
 
+                console.log('✏️ หลังแก้ไข:', {
+                    totalItems: Object.keys(priceDatabase).length,
+                    newKey: newKey,
+                    newData: priceDatabase[newKey]
+                });
+
+                // Save to Firebase
+                console.log('💾 กำลังบันทึกลง Firebase...');
                 await savePriceDatabase();
+                console.log('✅ บันทึกลง Firebase เสร็จสิ้น');
 
                 // Refresh display
                 const items = Object.values(priceDatabase).sort((a, b) => 
@@ -2862,18 +3009,30 @@
 
                 await Swal.fire({
                     title: 'สำเร็จ!',
-                    text: 'แก้ไขข้อมูลเรียบร้อยแล้ว',
+                    text: 'บันทึกข้อมูลลง Firebase เรียบร้อยแล้ว',
                     icon: 'success',
-                    timer: 1500,
+                    timer: 2000,
                     showConfirmButton: false
                 });
 
             } catch (error) {
-                console.error('Error saving edited item:', error);
+                console.error('❌ Error saving edited item:', error);
+                
+                // ถ้า save ไม่สำเร็จ ให้ rollback การเปลี่ยนแปลง
+                console.log('🔙 กำลัง rollback...');
+                await loadPriceDatabase();
+                
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+                window.allPriceItems = items;
+                renderPriceDatabase(items);
+
                 Swal.fire({
                     title: 'เกิดข้อผิดพลาด!',
-                    text: 'ไม่สามารถบันทึกข้อมูลได้: ' + error.message,
-                    icon: 'error'
+                    html: `ไม่สามารถบันทึกข้อมูลได้<br><br>รายละเอียด: ${error.message}<br><br>กรุณาเปิด Console (F12) เพื่อดูรายละเอียดเพิ่มเติม`,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
                 });
             } finally {
                 showLoading(false);
@@ -2902,6 +3061,8 @@
                 showLoading(true);
 
                 delete priceDatabase[key];
+                
+                // Save to Firebase
                 await savePriceDatabase();
 
                 // Refresh display
@@ -2925,18 +3086,29 @@
 
                 await Swal.fire({
                     title: 'สำเร็จ!',
-                    text: 'ลบรายการเรียบร้อยแล้ว',
+                    text: 'ลบรายการและบันทึกลง Firebase เรียบร้อยแล้ว',
                     icon: 'success',
-                    timer: 1500,
+                    timer: 2000,
                     showConfirmButton: false
                 });
 
             } catch (error) {
-                console.error('Error deleting item:', error);
+                console.error('❌ Error deleting item:', error);
+                
+                // ถ้าลบไม่สำเร็จ ให้ rollback
+                await loadPriceDatabase();
+                
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+                window.allPriceItems = items;
+                renderPriceDatabase(items);
+
                 Swal.fire({
                     title: 'เกิดข้อผิดพลาด!',
-                    text: 'ไม่สามารถลบรายการได้: ' + error.message,
-                    icon: 'error'
+                    html: `ไม่สามารถลบรายการได้<br><br>รายละเอียด: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
                 });
             } finally {
                 showLoading(false);
@@ -3212,6 +3384,10 @@
         // Save admin settings
         async function saveAdminSettings() {
             try {
+                if (!window.db || !window.firestore) {
+                    throw new Error('Firebase ยังไม่พร้อมใช้งาน');
+                }
+
                 await window.firestore.setDoc(
                     window.firestore.doc(window.db, 'settings', 'admin'),
                     {
@@ -3223,15 +3399,24 @@
                     },
                     { merge: true }
                 );
+                
+                console.log('✅ บันทึกการตั้งค่าแอดมินสำเร็จ');
             } catch (error) {
-                console.error('Error saving admin settings:', error);
+                console.error('❌ Error saving admin settings:', error);
+                throw error;
             }
         }
 
         // Load admin settings
         async function loadAdminSettings() {
             try {
+                // โหลดฐานข้อมูลราคาก่อน
                 await loadPriceDatabase();
+                
+                if (!window.db || !window.firestore) {
+                    console.warn('⚠️ Firebase ยังไม่พร้อม - ใช้ค่าเริ่มต้น');
+                    return;
+                }
                 
                 const docRef = window.firestore.doc(window.db, 'settings', 'admin');
                 const docSnap = await window.firestore.getDoc(docRef);
@@ -3259,9 +3444,14 @@
                     // Update previews
                     updateSignaturePreview('director', directorSignature);
                     updateSignaturePreview('officer', officerSignature);
+                    
+                    console.log('✅ โหลดการตั้งค่าแอดมินสำเร็จ');
+                } else {
+                    console.log('📝 ยังไม่มีการตั้งค่าแอดมิน - ใช้ค่าเริ่มต้น');
                 }
             } catch (error) {
-                console.error('Error loading admin settings:', error);
+                console.error('❌ Error loading admin settings:', error);
+                // ไม่ throw error เพราะไม่อยากให้หยุดการทำงานของระบบ
             }
         }
 
