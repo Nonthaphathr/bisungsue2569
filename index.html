@@ -2510,6 +2510,7 @@
 
         function generateSingleDetailDocument(data, pageBreak) {
             const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
+            const fontSize = data.useSmallFont ? '11px' : '16px'; // ลด 30% จาก 16px เป็น 11px
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
@@ -2564,7 +2565,7 @@
                         <div>(${data.creatorName})</div>
                         <div>ครูผู้ทำรายการ</div>
                     </div>
-                    ${showSpecialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
+                    ${showSpecialNote ? `<div style="text-align: center; margin-top: 20px; font-size: ${fontSize}; color: #0066cc; font-weight: 500; line-height: 1.6;">${data.specialNote}</div>` : ''}
                 </div>
             `;
         }
@@ -2573,6 +2574,7 @@
             const date = '.............. เดือน .......................................... พ.ศ. ...............';
             const docTypeText = data.docType === 'ซื้อ' ? 'ซื้อสินค้าวัสดุ-อุปกรณ์' : 'จ้างบริการ';
             const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
+            const fontSize = data.useSmallFont ? '11px' : '16px'; // ลด 30% จาก 16px เป็น 11px
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
@@ -2641,7 +2643,7 @@
                             <div>ผู้อำนวยการโรงเรียนกระดุมทองวิทยา</div>
                         </div>
                     </div>
-                    ${showSpecialNote ? `<div style="text-align: center; margin-top: 20px; font-size: 16px; color: #0066cc; font-weight: 500;">หมายเหตุ: ${data.specialNote}</div>` : ''}
+                    ${showSpecialNote ? `<div style="text-align: center; margin-top: 20px; font-size: ${fontSize}; color: #0066cc; font-weight: 500; line-height: 1.6;">${data.specialNote}</div>` : ''}
                 </div>
             `;
         }
@@ -2763,8 +2765,6 @@
         // Toggle special note for specific record
         async function toggleSpecialNoteForRecord(recordId) {
             try {
-                showLoading(true);
-
                 const record = allHistory.find(h => h.id === recordId);
                 if (!record) {
                     throw new Error('ไม่พบรายการ');
@@ -2819,9 +2819,10 @@
                         });
 
                         if (!isConfirmed || !newNote) {
-                            showLoading(false);
                             return;
                         }
+
+                        showLoading(true);
 
                         // Update Firebase
                         await window.firestore.updateDoc(
@@ -2830,6 +2831,8 @@
                                 specialNote: newNote
                             }
                         );
+
+                        showLoading(false);
 
                         await Swal.fire({
                             title: 'สำเร็จ!',
@@ -2841,6 +2844,8 @@
 
                     } else if (action === false) {
                         // ปิดโน้ต
+                        showLoading(true);
+
                         await window.firestore.updateDoc(
                             window.firestore.doc(window.db, 'purchase-orders', recordId),
                             {
@@ -2848,6 +2853,8 @@
                                 specialNote: ''
                             }
                         );
+
+                        showLoading(false);
 
                         await Swal.fire({
                             title: 'สำเร็จ!',
@@ -2858,7 +2865,6 @@
                         });
                     } else {
                         // ยกเลิก
-                        showLoading(false);
                         return;
                     }
 
@@ -2874,11 +2880,10 @@
                             icon: 'warning',
                             confirmButtonColor: '#1a365d'
                         });
-                        showLoading(false);
                         return;
                     }
 
-                    const template = `หากสนใจสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
+                    const template = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ -${creatorName} โทร.${phoneNumber}`;
 
                     const { value: customNote, isConfirmed } = await Swal.fire({
                         title: '📝 เปิดโน้ตพิเศษ',
@@ -2904,9 +2909,10 @@
                     });
 
                     if (!isConfirmed || !customNote) {
-                        showLoading(false);
                         return;
                     }
+
+                    showLoading(true);
 
                     // Update Firebase
                     await window.firestore.updateDoc(
@@ -2916,6 +2922,8 @@
                             specialNote: customNote
                         }
                     );
+
+                    showLoading(false);
 
                     await Swal.fire({
                         title: 'สำเร็จ!',
@@ -2931,14 +2939,13 @@
 
             } catch (error) {
                 console.error('❌ Error toggling special note:', error);
+                showLoading(false);
                 Swal.fire({
                     title: 'เกิดข้อผิดพลาด!',
                     html: `ไม่สามารถแก้ไขโน้ตพิเศษได้<br><br>รายละเอียด: ${error.message}`,
                     icon: 'error',
                     confirmButtonColor: '#1a365d'
                 });
-            } finally {
-                showLoading(false);
             }
         }
 
@@ -3185,10 +3192,47 @@
                 });
             });
 
+            // รวบรวมโน้ตพิเศษจากทุกรายการที่เปิดใช้งาน
+            const specialNotes = [];
+            mergedData.forEach(record => {
+                if (record.specialNoteEnabled === true && record.creatorName && record.phoneNumber) {
+                    specialNotes.push({
+                        name: record.creatorName,
+                        phone: record.phoneNumber
+                    });
+                }
+            });
+
+            // สร้างข้อความโน้ตรวม
+            let combinedSpecialNote = '';
+            let useSmallFont = false;
+            
+            if (specialNotes.length > 0) {
+                // ลบข้อมูลซ้ำ (กรณีชื่อและเบอร์เหมือนกัน)
+                const uniqueNotes = specialNotes.filter((note, index, self) =>
+                    index === self.findIndex(n => n.name === note.name && n.phone === note.phone)
+                );
+                
+                // สร้างข้อความ
+                if (uniqueNotes.length === 1) {
+                    combinedSpecialNote = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ -${uniqueNotes[0].name} โทร.${uniqueNotes[0].phone}`;
+                } else {
+                    const noteLines = uniqueNotes.map(note => 
+                        `-${note.name} โทร.${note.phone}`
+                    ).join('<br>');
+                    combinedSpecialNote = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่<br>${noteLines}`;
+                    
+                    // ถ้ามากกว่า 2 คน ให้ใช้ font เล็ก
+                    if (uniqueNotes.length > 2) {
+                        useSmallFont = true;
+                    }
+                }
+            }
+
             // แจ้งเตือนเมื่อเลือกหลายรายการ
             if (mergedData.length > 1) {
                 const firstRecord = mergedData[0];
-                const hasNote = firstRecord.specialNoteEnabled === true;
+                const hasNote = combinedSpecialNote !== '';
                 
                 const result = await Swal.fire({
                     title: '📄 ยืนยันการพิมพ์รวม',
@@ -3201,7 +3245,7 @@
                                     <li><strong>ชื่อโครงการ:</strong> ${firstRecord.projectName}</li>
                                     <li><strong>ผู้ทำรายการ:</strong> ${firstRecord.creatorName}</li>
                                     <li><strong>กลุ่มสาระ:</strong> ${firstRecord.department}</li>
-                                    ${hasNote ? `<li><strong>โน้ตพิเศษ:</strong> ${firstRecord.specialNote.substring(0, 60)}${firstRecord.specialNote.length > 60 ? '...' : ''}</li>` : '<li><strong>โน้ตพิเศษ:</strong> <em style="color: #718096;">ไม่มี</em></li>'}
+                                    ${hasNote ? `<li><strong>โน้ตพิเศษ:</strong> รวมจากทุกรายการที่เปิดใช้งาน</li>` : '<li><strong>โน้ตพิเศษ:</strong> <em style="color: #718096;">ไม่มี</em></li>'}
                                 </ul>
                             </div>
                             <p style="font-size: 0.9rem; color: #718096; margin: 0;">
@@ -3228,7 +3272,7 @@
             
             // สร้าง combined data โดยใช้ข้อมูลโครงการจากรายการแรก
             const combinedData = {
-                projectName: firstRecord.projectName,  // ใช้ชื่อโครงการจากรายการแรก
+                projectName: firstRecord.projectName,
                 department: firstRecord.department,
                 director: firstRecord.director,
                 officer: firstRecord.officer,
@@ -3237,9 +3281,10 @@
                 phoneNumber: firstRecord.phoneNumber || '',
                 items: allItems,
                 grandTotal: totalBudget.toFixed(2),
-                // ใช้โน้ตพิเศษจากรายการแรก (ถ้ามี)
-                specialNoteEnabled: firstRecord.specialNoteEnabled === true,
-                specialNote: firstRecord.specialNoteEnabled === true ? (firstRecord.specialNote || '') : ''
+                // ใช้โน้ตที่รวมแล้ว
+                specialNoteEnabled: combinedSpecialNote !== '',
+                specialNote: combinedSpecialNote,
+                useSmallFont: useSmallFont  // ส่งข้อมูลว่าควรใช้ font เล็กหรือไม่
             };
 
             const html = type === 'detail' ? 
@@ -3517,7 +3562,7 @@
                         <tr>
                             <th style="width: 60px;">ลำดับ</th>
                             <th>รายการ</th>
-                            <th style="width: 120px;">ราคา (บาท) ต่อหน่วย</th>
+                            <th style="width: 120px;">ราคา (บาท)</th>
                             <th style="width: 100px;">หน่วยนับ</th>
                             <th style="width: 100px;">จัดการ</th>
                         </tr>
@@ -3881,7 +3926,7 @@
                 return;
             }
             
-            const template = `หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ ${creatorName} โทร. ${phoneNumber}`;
+            const template = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ -${creatorName} โทร.${phoneNumber}`;
             document.getElementById('specialNoteText').value = template;
             
             Swal.fire({
