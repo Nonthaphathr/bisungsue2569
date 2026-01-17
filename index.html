@@ -3173,12 +3173,15 @@
             const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
             const mergedData = allHistory.filter(h => selectedIds.includes(h.id));
 
-            // รวมรายการทั้งหมดเป็นเอกสารเดียว
+            // รวมรายการทั้งหมดเป็นเอกสารเดียว และเก็บช่วงลำดับของแต่ละ record
             const allItems = [];
+            const recordRanges = []; // เก็บข้อมูลว่า record ไหนมีรายการช่วงไหน
             let itemCounter = 1;
             let totalBudget = 0;
 
             mergedData.forEach(record => {
+                const startIndex = itemCounter;
+                
                 record.items.forEach(item => {
                     allItems.push({
                         no: itemCounter++,
@@ -3190,15 +3193,30 @@
                     });
                     totalBudget += parseFloat(item.total) || 0;
                 });
+                
+                const endIndex = itemCounter - 1;
+                
+                // เก็บข้อมูลช่วงลำดับของ record นี้
+                recordRanges.push({
+                    recordId: record.id,
+                    creatorName: record.creatorName,
+                    phoneNumber: record.phoneNumber,
+                    specialNoteEnabled: record.specialNoteEnabled,
+                    startIndex: startIndex,
+                    endIndex: endIndex,
+                    itemCount: record.items.length
+                });
             });
 
-            // รวบรวมโน้ตพิเศษจากทุกรายการที่เปิดใช้งาน
+            // รวบรวมโน้ตพิเศษพร้อมช่วงลำดับรายการ
             const specialNotes = [];
-            mergedData.forEach(record => {
-                if (record.specialNoteEnabled === true && record.creatorName && record.phoneNumber) {
+            recordRanges.forEach(range => {
+                if (range.specialNoteEnabled === true && range.creatorName && range.phoneNumber && range.itemCount > 0) {
                     specialNotes.push({
-                        name: record.creatorName,
-                        phone: record.phoneNumber
+                        name: range.creatorName,
+                        phone: range.phoneNumber,
+                        startIndex: range.startIndex,
+                        endIndex: range.endIndex
                     });
                 }
             });
@@ -3208,18 +3226,36 @@
             let useSmallFont = false;
             
             if (specialNotes.length > 0) {
-                // ลบข้อมูลซ้ำ (กรณีชื่อและเบอร์เหมือนกัน)
-                const uniqueNotes = specialNotes.filter((note, index, self) =>
-                    index === self.findIndex(n => n.name === note.name && n.phone === note.phone)
-                );
+                // ลบข้อมูลซ้ำ โดยรวมช่วงลำดับของคนเดียวกัน
+                const uniqueNotesMap = new Map();
+                
+                specialNotes.forEach(note => {
+                    const key = `${note.name}|${note.phone}`;
+                    if (uniqueNotesMap.has(key)) {
+                        // ถ้ามีชื่อและเบอร์เดียวกันแล้ว ให้รวมช่วงลำดับ
+                        const existing = uniqueNotesMap.get(key);
+                        existing.ranges.push({ start: note.startIndex, end: note.endIndex });
+                    } else {
+                        uniqueNotesMap.set(key, {
+                            name: note.name,
+                            phone: note.phone,
+                            ranges: [{ start: note.startIndex, end: note.endIndex }]
+                        });
+                    }
+                });
+                
+                const uniqueNotes = Array.from(uniqueNotesMap.values());
                 
                 // สร้างข้อความ
                 if (uniqueNotes.length === 1) {
-                    combinedSpecialNote = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ -${uniqueNotes[0].name} โทร.${uniqueNotes[0].phone}`;
+                    const note = uniqueNotes[0];
+                    const rangeText = formatItemRanges(note.ranges);
+                    combinedSpecialNote = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ -${note.name} โทร.${note.phone} ${rangeText}`;
                 } else {
-                    const noteLines = uniqueNotes.map(note => 
-                        `-${note.name} โทร.${note.phone}`
-                    ).join('<br>');
+                    const noteLines = uniqueNotes.map(note => {
+                        const rangeText = formatItemRanges(note.ranges);
+                        return `-${note.name} โทร.${note.phone} ${rangeText}`;
+                    }).join('<br>');
                     combinedSpecialNote = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่<br>${noteLines}`;
                     
                     // ถ้ามากกว่า 2 คน ให้ใช้ font เล็ก
@@ -3245,7 +3281,7 @@
                                     <li><strong>ชื่อโครงการ:</strong> ${firstRecord.projectName}</li>
                                     <li><strong>ผู้ทำรายการ:</strong> ${firstRecord.creatorName}</li>
                                     <li><strong>กลุ่มสาระ:</strong> ${firstRecord.department}</li>
-                                    ${hasNote ? `<li><strong>โน้ตพิเศษ:</strong> รวมจากทุกรายการที่เปิดใช้งาน</li>` : '<li><strong>โน้ตพิเศษ:</strong> <em style="color: #718096;">ไม่มี</em></li>'}
+                                    ${hasNote ? `<li><strong>โน้ตพิเศษ:</strong> รวมจากทุกรายการที่เปิดใช้งาน (พร้อมช่วงลำดับ)</li>` : '<li><strong>โน้ตพิเศษ:</strong> <em style="color: #718096;">ไม่มี</em></li>'}
                                 </ul>
                             </div>
                             <p style="font-size: 0.9rem; color: #718096; margin: 0;">
@@ -3296,6 +3332,41 @@
             setTimeout(() => {
                 window.print();
             }, 100);
+        }
+
+        // ฟังก์ชันช่วยในการจัดรูปแบบช่วงลำดับรายการ
+        function formatItemRanges(ranges) {
+            if (!ranges || ranges.length === 0) return '';
+            
+            // เรียงลำดับช่วง
+            ranges.sort((a, b) => a.start - b.start);
+            
+            // รวมช่วงที่ติดกัน
+            const mergedRanges = [];
+            let currentRange = { ...ranges[0] };
+            
+            for (let i = 1; i < ranges.length; i++) {
+                if (ranges[i].start === currentRange.end + 1) {
+                    // ช่วงติดกัน ให้รวม
+                    currentRange.end = ranges[i].end;
+                } else {
+                    // ช่วงไม่ติดกัน ให้เก็บช่วงเก่าและเริ่มช่วงใหม่
+                    mergedRanges.push({ ...currentRange });
+                    currentRange = { ...ranges[i] };
+                }
+            }
+            mergedRanges.push(currentRange);
+            
+            // สร้างข้อความ
+            const rangeTexts = mergedRanges.map(range => {
+                if (range.start === range.end) {
+                    return `${range.start}`;
+                } else {
+                    return `${range.start}-${range.end}`;
+                }
+            });
+            
+            return `(รายการที่ ${rangeTexts.join(', ')})`;
         }
 
         // Export all data to Excel
