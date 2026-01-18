@@ -4057,6 +4057,16 @@
             document.getElementById('digitalSignatureInputs').style.display = digitalSignatureEnabled ? 'block' : 'none';
             document.getElementById('digitalSignatureStatus').textContent = digitalSignatureEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
             
+            console.log('🔄 Toggle digital signature:', digitalSignatureEnabled);
+            
+            // ถ้าเปิดใช้งาน ให้ update preview (กรณีที่มีข้อมูลบันทึกอยู่แล้ว)
+            if (digitalSignatureEnabled) {
+                setTimeout(() => {
+                    updateSignaturePreview('director', directorSignature);
+                    updateSignaturePreview('officer', officerSignature);
+                }, 100);
+            }
+            
             saveAdminSettings();
         }
 
@@ -4095,36 +4105,46 @@
                 // Convert to base64
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const base64 = e.target.result;
+                    try {
+                        const base64 = e.target.result;
 
-                    if (type === 'director') {
-                        directorSignature = base64;
-                        updateSignaturePreview('director', base64);
-                    } else if (type === 'officer') {
-                        officerSignature = base64;
-                        updateSignaturePreview('officer', base64);
-                    }
+                        if (type === 'director') {
+                            directorSignature = base64;
+                            updateSignaturePreview('director', base64);
+                        } else if (type === 'officer') {
+                            officerSignature = base64;
+                            updateSignaturePreview('officer', base64);
+                        }
 
-                    await saveAdminSettings();
+                        await saveAdminSettings();
+                        
+                        showLoading(false);
 
-                    await Swal.fire({
-                        title: '✅ บันทึกสำเร็จ!',
-                        html: `
-                            <div style="text-align: left; padding: 1rem;">
-                                <p style="margin-bottom: 0.5rem;">อัปโหลดและบันทึกลายเซ็นเรียบร้อยแล้ว</p>
-                                <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px; margin-top: 1rem;">
-                                    <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
-                                        <strong>💾 บันทึกถาวร:</strong> ลายเซ็นนี้จะถูกบันทึกไว้ในระบบ และจะแสดงอัตโนมัติในเอกสารทุกครั้ง ไม่ต้องอัปโหลดใหม่อีก
-                                    </p>
+                        await Swal.fire({
+                            title: '✅ บันทึกสำเร็จ!',
+                            html: `
+                                <div style="text-align: left; padding: 1rem;">
+                                    <p style="margin-bottom: 0.5rem;">อัปโหลดและบันทึกลายเซ็นเรียบร้อยแล้ว</p>
+                                    <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px; margin-top: 1rem;">
+                                        <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
+                                            <strong>💾 บันทึกถาวร:</strong> ลายเซ็นนี้จะถูกบันทึกไว้ในระบบ และจะแสดงอัตโนมัติในเอกสารทุกครั้ง ไม่ต้องอัปโหลดใหม่อีก
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonColor: '#10b981',
-                        confirmButtonText: 'เข้าใจแล้ว'
-                    });
-
-                    showLoading(false);
+                            `,
+                            icon: 'success',
+                            confirmButtonColor: '#10b981',
+                            confirmButtonText: 'เข้าใจแล้ว'
+                        });
+                    } catch (err) {
+                        showLoading(false);
+                        console.error('Error in reader.onload:', err);
+                        Swal.fire({
+                            title: 'เกิดข้อผิดพลาด!',
+                            text: 'ไม่สามารถบันทึกลายเซ็นได้: ' + err.message,
+                            icon: 'error'
+                        });
+                    }
                 };
                 reader.readAsDataURL(file);
 
@@ -4153,22 +4173,46 @@
             const deleteBtn = document.getElementById(deleteBtnId);
             const uploadText = document.getElementById(uploadTextId);
             
+            // ตรวจสอบว่า element มีอยู่จริง (กรณีที่ digitalSignatureInputs ถูกซ่อนอยู่)
+            if (!preview) {
+                console.warn(`⚠️ Element ${previewId} not found - signature inputs may be hidden`);
+                return;
+            }
+            
             if (base64) {
                 // มีลายเซ็นแล้ว
                 preview.innerHTML = `<img src="${base64}" alt="ตัวอย่างลายเซ็น" />`;
-                statusBadge.innerHTML = '✅ บันทึกแล้ว';
-                statusBadge.style.background = '#d1fae5';
-                statusBadge.style.color = '#065f46';
-                deleteBtn.style.display = 'block';
-                uploadText.textContent = '🔄 เปลี่ยนลายเซ็น';
+                
+                if (statusBadge) {
+                    statusBadge.innerHTML = '✅ บันทึกแล้ว';
+                    statusBadge.style.background = '#d1fae5';
+                    statusBadge.style.color = '#065f46';
+                }
+                
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'block';
+                }
+                
+                if (uploadText) {
+                    uploadText.textContent = '🔄 เปลี่ยนลายเซ็น';
+                }
             } else {
                 // ยังไม่มีลายเซ็น
                 preview.innerHTML = '<div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>';
-                statusBadge.innerHTML = '⏳ ยังไม่มีลายเซ็น';
-                statusBadge.style.background = '#fef3c7';
-                statusBadge.style.color = '#92400e';
-                deleteBtn.style.display = 'none';
-                uploadText.textContent = '📁 เลือกไฟล์ลายเซ็น (PNG)';
+                
+                if (statusBadge) {
+                    statusBadge.innerHTML = '⏳ ยังไม่มีลายเซ็น';
+                    statusBadge.style.background = '#fef3c7';
+                    statusBadge.style.color = '#92400e';
+                }
+                
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'none';
+                }
+                
+                if (uploadText) {
+                    uploadText.textContent = '📁 เลือกไฟล์ลายเซ็น (PNG)';
+                }
             }
         }
 
@@ -4277,25 +4321,45 @@
                     // Special note
                     specialNoteEnabled = data.specialNoteEnabled || false;
                     specialNoteText = data.specialNoteText || '';
-                    document.getElementById('specialNoteToggle').checked = specialNoteEnabled;
-                    document.getElementById('specialNoteText').value = specialNoteText;
-                    document.getElementById('specialNoteInput').style.display = specialNoteEnabled ? 'block' : 'none';
-                    document.getElementById('specialNoteStatus').textContent = specialNoteEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+                    
+                    const specialNoteToggleEl = document.getElementById('specialNoteToggle');
+                    const specialNoteTextEl = document.getElementById('specialNoteText');
+                    const specialNoteInputEl = document.getElementById('specialNoteInput');
+                    const specialNoteStatusEl = document.getElementById('specialNoteStatus');
+                    
+                    if (specialNoteToggleEl) specialNoteToggleEl.checked = specialNoteEnabled;
+                    if (specialNoteTextEl) specialNoteTextEl.value = specialNoteText;
+                    if (specialNoteInputEl) specialNoteInputEl.style.display = specialNoteEnabled ? 'block' : 'none';
+                    if (specialNoteStatusEl) specialNoteStatusEl.textContent = specialNoteEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
 
-                    // Digital signature
+                    // Digital signature - โหลดข้อมูลก่อน
                     digitalSignatureEnabled = data.digitalSignatureEnabled || false;
                     directorSignature = data.directorSignature || '';
                     officerSignature = data.officerSignature || '';
                     
-                    document.getElementById('digitalSignatureToggle').checked = digitalSignatureEnabled;
-                    document.getElementById('digitalSignatureInputs').style.display = digitalSignatureEnabled ? 'block' : 'none';
-                    document.getElementById('digitalSignatureStatus').textContent = digitalSignatureEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+                    const digitalSignatureToggleEl = document.getElementById('digitalSignatureToggle');
+                    const digitalSignatureInputsEl = document.getElementById('digitalSignatureInputs');
+                    const digitalSignatureStatusEl = document.getElementById('digitalSignatureStatus');
                     
-                    // Update previews
-                    updateSignaturePreview('director', directorSignature);
-                    updateSignaturePreview('officer', officerSignature);
+                    if (digitalSignatureToggleEl) digitalSignatureToggleEl.checked = digitalSignatureEnabled;
+                    if (digitalSignatureStatusEl) digitalSignatureStatusEl.textContent = digitalSignatureEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
                     
-                    console.log('✅ โหลดการตั้งค่าแอดมินสำเร็จ');
+                    // แสดง/ซ่อน inputs ก่อน
+                    if (digitalSignatureInputsEl) {
+                        digitalSignatureInputsEl.style.display = digitalSignatureEnabled ? 'block' : 'none';
+                    }
+                    
+                    // รอให้ DOM อัปเดตก่อนแล้วค่อย update preview
+                    setTimeout(() => {
+                        updateSignaturePreview('director', directorSignature);
+                        updateSignaturePreview('officer', officerSignature);
+                    }, 100);
+                    
+                    console.log('✅ โหลดการตั้งค่าแอดมินสำเร็จ', {
+                        digitalSignatureEnabled,
+                        hasDirectorSignature: !!directorSignature,
+                        hasOfficerSignature: !!officerSignature
+                    });
                 } else {
                     console.log('📝 ยังไม่มีการตั้งค่าแอดมิน - ใช้ค่าเริ่มต้น');
                 }
