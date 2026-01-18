@@ -1112,22 +1112,29 @@
         /* Signature Preview */
         .signature-preview {
             margin-top: 1rem;
-            padding: 1rem;
+            padding: 1.5rem;
             border: 2px dashed var(--border);
             border-radius: 8px;
             text-align: center;
+            background: white;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .signature-preview img {
             max-width: 300px;
-            max-height: 150px;
-            margin: 0.5rem auto;
+            max-height: 120px;
+            margin: 0 auto;
             display: block;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
         }
 
         .signature-preview-empty {
-            color: #718096;
+            color: #94a3b8;
             font-style: italic;
+            font-size: 0.9rem;
         }
 
         /* Icon buttons for price database */
@@ -1525,7 +1532,13 @@
                     <!-- Digital Signature Management -->
                     <div class="admin-card">
                         <h3>✍️ จัดการลายเซ็นดิจิทัล</h3>
-                        <p style="margin-bottom: 1rem; color: #718096;">อัปโหลดลายเซ็นดิจิทัล (รูปภาพ PNG) เพื่อแสดงในเอกสารใบสั่งซื้อ/จ้าง</p>
+                        <div style="margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #3b82f6; border-radius: 8px;">
+                            <p style="margin: 0; color: #1e40af; font-size: 0.95rem; line-height: 1.6;">
+                                <strong>💾 อัปโหลดครั้งเดียว บันทึกถาวร!</strong><br>
+                                อัปโหลดลายเซ็นดิจิทัล (รูปภาพ PNG) เพื่อแสดงในเอกสารใบสั่งซื้อ/จ้าง<br>
+                                <span style="font-size: 0.875rem;">ระบบจะบันทึกลายเซ็นไว้ใช้งานได้เรื่อยๆ ไม่ต้องอัปโหลดใหม่ทุกครั้ง</span>
+                            </p>
+                        </div>
                         
                         <!-- Enable/Disable Digital Signature -->
                         <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
@@ -1538,33 +1551,47 @@
 
                         <div id="digitalSignatureInputs" style="display: none;">
                             <!-- Director Signature -->
-                            <div style="margin-bottom: 2rem;">
-                                <h4 style="margin-bottom: 0.5rem;">📝 ลายเซ็นผู้อำนวยการ</h4>
-                                <label class="file-input-label">
-                                    📁 เลือกไฟล์ลายเซ็น (PNG)
-                                    <input type="file" accept="image/png" onchange="uploadSignature(event, 'director')">
-                                </label>
+                            <div style="margin-bottom: 2rem; padding: 1.5rem; background: #f7fafc; border-radius: 12px; border: 2px solid #e2e8f0;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                    <h4 style="margin: 0; color: var(--primary);">📝 ลายเซ็นผู้อำนวยการ</h4>
+                                    <span id="directorStatus" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 12px; background: #fef3c7; color: #92400e; font-weight: 600;">
+                                        ⏳ ยังไม่มีลายเซ็น
+                                    </span>
+                                </div>
                                 <div class="signature-preview" id="directorSignaturePreview">
                                     <div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>
                                 </div>
-                                <button class="btn btn-danger btn-small" onclick="deleteSignature('director')" style="margin-top: 0.5rem;">
-                                    🗑️ ลบลายเซ็น
-                                </button>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                    <label class="file-input-label" style="flex: 1;">
+                                        <span id="directorUploadText">📁 เลือกไฟล์ลายเซ็น (PNG)</span>
+                                        <input type="file" accept="image/png" onchange="uploadSignature(event, 'director')">
+                                    </label>
+                                    <button class="btn btn-danger btn-small" id="directorDeleteBtn" onclick="deleteSignature('director')" style="display: none;">
+                                        🗑️ ลบ
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Officer Signature -->
-                            <div style="margin-bottom: 1rem;">
-                                <h4 style="margin-bottom: 0.5rem;">📝 ลายเซ็นเจ้าหน้าที่พัสดุ</h4>
-                                <label class="file-input-label">
-                                    📁 เลือกไฟล์ลายเซ็น (PNG)
-                                    <input type="file" accept="image/png" onchange="uploadSignature(event, 'officer')">
-                                </label>
+                            <div style="margin-bottom: 1rem; padding: 1.5rem; background: #f7fafc; border-radius: 12px; border: 2px solid #e2e8f0;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                    <h4 style="margin: 0; color: var(--primary);">📝 ลายเซ็นเจ้าหน้าที่พัสดุ</h4>
+                                    <span id="officerStatus" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 12px; background: #fef3c7; color: #92400e; font-weight: 600;">
+                                        ⏳ ยังไม่มีลายเซ็น
+                                    </span>
+                                </div>
                                 <div class="signature-preview" id="officerSignaturePreview">
                                     <div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>
                                 </div>
-                                <button class="btn btn-danger btn-small" onclick="deleteSignature('officer')" style="margin-top: 0.5rem;">
-                                    🗑️ ลบลายเซ็น
-                                </button>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                    <label class="file-input-label" style="flex: 1;">
+                                        <span id="officerUploadText">📁 เลือกไฟล์ลายเซ็น (PNG)</span>
+                                        <input type="file" accept="image/png" onchange="uploadSignature(event, 'officer')">
+                                    </label>
+                                    <button class="btn btn-danger btn-small" id="officerDeleteBtn" onclick="deleteSignature('officer')" style="display: none;">
+                                        🗑️ ลบ
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4081,11 +4108,20 @@
                     await saveAdminSettings();
 
                     await Swal.fire({
-                        title: 'สำเร็จ!',
-                        text: 'อัปโหลดลายเซ็นเรียบร้อยแล้ว',
+                        title: '✅ บันทึกสำเร็จ!',
+                        html: `
+                            <div style="text-align: left; padding: 1rem;">
+                                <p style="margin-bottom: 0.5rem;">อัปโหลดและบันทึกลายเซ็นเรียบร้อยแล้ว</p>
+                                <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px; margin-top: 1rem;">
+                                    <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
+                                        <strong>💾 บันทึกถาวร:</strong> ลายเซ็นนี้จะถูกบันทึกไว้ในระบบ และจะแสดงอัตโนมัติในเอกสารทุกครั้ง ไม่ต้องอัปโหลดใหม่อีก
+                                    </p>
+                                </div>
+                            </div>
+                        `,
                         icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: 'เข้าใจแล้ว'
                     });
 
                     showLoading(false);
@@ -4108,20 +4144,50 @@
         // Update signature preview
         function updateSignaturePreview(type, base64) {
             const previewId = type === 'director' ? 'directorSignaturePreview' : 'officerSignaturePreview';
+            const statusId = type === 'director' ? 'directorStatus' : 'officerStatus';
+            const deleteBtnId = type === 'director' ? 'directorDeleteBtn' : 'officerDeleteBtn';
+            const uploadTextId = type === 'director' ? 'directorUploadText' : 'officerUploadText';
+            
             const preview = document.getElementById(previewId);
+            const statusBadge = document.getElementById(statusId);
+            const deleteBtn = document.getElementById(deleteBtnId);
+            const uploadText = document.getElementById(uploadTextId);
             
             if (base64) {
+                // มีลายเซ็นแล้ว
                 preview.innerHTML = `<img src="${base64}" alt="ตัวอย่างลายเซ็น" />`;
+                statusBadge.innerHTML = '✅ บันทึกแล้ว';
+                statusBadge.style.background = '#d1fae5';
+                statusBadge.style.color = '#065f46';
+                deleteBtn.style.display = 'block';
+                uploadText.textContent = '🔄 เปลี่ยนลายเซ็น';
             } else {
+                // ยังไม่มีลายเซ็น
                 preview.innerHTML = '<div class="signature-preview-empty">ยังไม่ได้อัปโหลดลายเซ็น</div>';
+                statusBadge.innerHTML = '⏳ ยังไม่มีลายเซ็น';
+                statusBadge.style.background = '#fef3c7';
+                statusBadge.style.color = '#92400e';
+                deleteBtn.style.display = 'none';
+                uploadText.textContent = '📁 เลือกไฟล์ลายเซ็น (PNG)';
             }
         }
 
         // Delete signature
         async function deleteSignature(type) {
+            const typeName = type === 'director' ? 'ผู้อำนวยการ' : 'เจ้าหน้าที่พัสดุ';
+            
             const result = await Swal.fire({
-                title: 'ยืนยันการลบ',
-                text: 'ต้องการลบลายเซ็นนี้หรือไม่?',
+                title: '⚠️ ยืนยันการลบ',
+                html: `
+                    <div style="text-align: left; padding: 1rem;">
+                        <p style="margin-bottom: 1rem;">ต้องการลบลายเซ็น<strong>${typeName}</strong>หรือไม่?</p>
+                        <div style="padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 6px;">
+                            <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">
+                                <strong>⚠️ คำเตือน:</strong> ลายเซ็นจะถูกลบออกจากระบบถาวร และจะไม่แสดงในเอกสารอีกต่อไป
+                            </p>
+                        </div>
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e53e3e',
@@ -4146,8 +4212,8 @@
                 await saveAdminSettings();
 
                 await Swal.fire({
-                    title: 'สำเร็จ!',
-                    text: 'ลบลายเซ็นเรียบร้อยแล้ว',
+                    title: '✅ ลบสำเร็จ!',
+                    text: 'ลบลายเซ็นออกจากระบบเรียบร้อยแล้ว',
                     icon: 'success',
                     timer: 1500,
                     showConfirmButton: false
