@@ -3482,19 +3482,134 @@
                             }
                         });
 
-                        priceDatabase = newPriceDatabase;
-                        
-                        // Save to Firebase
-                        await savePriceDatabase();
-                        
-                        await Swal.fire({
-                            title: 'สำเร็จ!',
-                            html: `นำเข้าฐานข้อมูลราคาสำเร็จ<br>จำนวน ${importCount} รายการ<br>และบันทึกลง Firebase เรียบร้อยแล้ว`,
-                            icon: 'success',
-                            confirmButtonColor: '#1a365d'
-                        });
-                        
                         showLoading(false);
+
+                        // ถามผู้ใช้ว่าจะ merge หรือ replace
+                        const currentCount = Object.keys(priceDatabase).length;
+                        
+                        const result = await Swal.fire({
+                            title: '📊 ยืนยันการนำเข้าข้อมูล',
+                            html: `
+                                <div style="text-align: left; padding: 1rem;">
+                                    <p style="margin-bottom: 1rem;">พบข้อมูลจากไฟล์ <strong>${importCount} รายการ</strong></p>
+                                    <p style="margin-bottom: 1.5rem;">ฐานข้อมูลปัจจุบันมี <strong>${currentCount} รายการ</strong></p>
+                                    
+                                    <div style="padding: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; margin-bottom: 1rem;">
+                                        <p style="margin: 0; color: #92400e; font-size: 0.9rem;">
+                                            <strong>⚠️ คำถาม:</strong> ต้องการนำเข้าข้อมูลแบบไหน?
+                                        </p>
+                                    </div>
+                                    
+                                    <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                                        <div style="padding: 0.75rem; background: #dbeafe; border-radius: 6px;">
+                                            <strong>🔄 เพิ่มเข้าไป (Merge):</strong><br>
+                                            เก็บข้อมูลเดิมไว้ และเพิ่มรายการใหม่เข้าไป<br>
+                                            <span style="color: #1e40af;">→ จำนวนรวมโดยประมาณ: ${currentCount + importCount} รายการ</span>
+                                        </div>
+                                        <div style="padding: 0.75rem; background: #fee2e2; border-radius: 6px;">
+                                            <strong>🔁 ทับทั้งหมด (Replace):</strong><br>
+                                            ลบข้อมูลเดิมทั้งหมด และใช้ข้อมูลใหม่แทน<br>
+                                            <span style="color: #991b1b;">→ จำนวนรวม: ${importCount} รายการ</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `,
+                            icon: 'question',
+                            showCancelButton: true,
+                            showDenyButton: true,
+                            confirmButtonText: '🔄 เพิ่มเข้าไป (แนะนำ)',
+                            denyButtonText: '🔁 ทับทั้งหมด',
+                            cancelButtonText: 'ยกเลิก',
+                            confirmButtonColor: '#10b981',
+                            denyButtonColor: '#ef4444',
+                            cancelButtonColor: '#6b7280',
+                            width: '650px'
+                        });
+
+                        if (result.isConfirmed) {
+                            // Merge - เพิ่มเข้าไป
+                            let addedCount = 0;
+                            let updatedCount = 0;
+                            
+                            for (const [key, value] of Object.entries(newPriceDatabase)) {
+                                if (priceDatabase[key]) {
+                                    updatedCount++;
+                                } else {
+                                    addedCount++;
+                                }
+                                priceDatabase[key] = value;
+                            }
+                            
+                            showLoading(true);
+                            await savePriceDatabase();
+                            showLoading(false);
+                            
+                            await Swal.fire({
+                                title: '✅ นำเข้าสำเร็จ!',
+                                html: `
+                                    <div style="text-align: left; padding: 1rem;">
+                                        <p style="margin-bottom: 1rem;">นำเข้าฐานข้อมูลราคาแบบ Merge เรียบร้อยแล้ว</p>
+                                        <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px;">
+                                            <p style="margin: 0; color: #1e40af; font-size: 0.9rem; line-height: 1.8;">
+                                                • รายการใหม่: <strong>${addedCount}</strong> รายการ<br>
+                                                • อัปเดต: <strong>${updatedCount}</strong> รายการ<br>
+                                                • <strong>รวมทั้งหมด: ${Object.keys(priceDatabase).length} รายการ</strong>
+                                            </p>
+                                        </div>
+                                    </div>
+                                `,
+                                icon: 'success',
+                                confirmButtonColor: '#10b981'
+                            });
+                        } else if (result.isDenied) {
+                            // Replace - ทับทั้งหมด
+                            const confirmReplace = await Swal.fire({
+                                title: '⚠️ ยืนยันอีกครั้ง',
+                                html: `
+                                    <div style="text-align: left; padding: 1rem;">
+                                        <div style="padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 6px;">
+                                            <p style="margin: 0; color: #991b1b; font-size: 0.9rem; line-height: 1.8;">
+                                                <strong>🚨 คำเตือน:</strong><br>
+                                                คุณกำลังจะลบข้อมูลเดิม <strong>${currentCount} รายการ</strong> ทั้งหมด<br>
+                                                และใช้ข้อมูลใหม่ <strong>${importCount} รายการ</strong> แทน<br><br>
+                                                <strong>การดำเนินการนี้ไม่สามารถย้อนกลับได้!</strong>
+                                            </p>
+                                        </div>
+                                    </div>
+                                `,
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'ใช่, ทับทั้งหมด',
+                                cancelButtonText: 'ยกเลิก',
+                                confirmButtonColor: '#ef4444',
+                                cancelButtonColor: '#6b7280'
+                            });
+                            
+                            if (confirmReplace.isConfirmed) {
+                                priceDatabase = newPriceDatabase;
+                                
+                                showLoading(true);
+                                await savePriceDatabase();
+                                showLoading(false);
+                                
+                                await Swal.fire({
+                                    title: '✅ นำเข้าสำเร็จ!',
+                                    html: `
+                                        <div style="text-align: left; padding: 1rem;">
+                                            <p style="margin-bottom: 1rem;">นำเข้าฐานข้อมูลราคาแบบ Replace เรียบร้อยแล้ว</p>
+                                            <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px;">
+                                                <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
+                                                    <strong>รวมทั้งหมด: ${Object.keys(priceDatabase).length} รายการ</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    `,
+                                    icon: 'success',
+                                    confirmButtonColor: '#10b981'
+                                });
+                            }
+                        }
+                        
                     } catch (error) {
                         console.error('❌ Error processing Excel file:', error);
                         showLoading(false);
@@ -3594,11 +3709,25 @@
                 if (docSnap.exists()) {
                     const loadedData = docSnap.data();
                     priceDatabase = loadedData.data || {};
+                    
+                    const itemCount = Object.keys(priceDatabase).length;
+                    const dataSize = JSON.stringify(priceDatabase).length;
+                    const dataSizeKB = (dataSize / 1024).toFixed(2);
+                    
                     console.log(`✅ โหลดฐานข้อมูลราคาสำเร็จ`, {
-                        itemCount: Object.keys(priceDatabase).length,
-                        lastUpdated: loadedData.lastUpdated,
-                        sample: Object.keys(priceDatabase).slice(0, 3)
+                        จำนวนรายการ: itemCount,
+                        ขนาดข้อมูล: `${dataSizeKB} KB`,
+                        อัปเดตล่าสุด: loadedData.lastUpdated,
+                        ตัวอย่าง_3_รายการแรก: Object.keys(priceDatabase).slice(0, 3),
+                        ตัวอย่าง_3_รายการสุดท้าย: Object.keys(priceDatabase).slice(-3)
                     });
+                    
+                    // ตรวจสอบว่าข้อมูลครบหรือไม่
+                    if (itemCount === 0) {
+                        console.warn('⚠️ ไม่มีข้อมูลในฐานข้อมูลราคา');
+                    } else if (dataSizeKB > 900) {
+                        console.warn(`⚠️ ข้อมูลใช้พื้นที่ ${dataSizeKB} KB (ใกล้ถึงขีดจำกัด 1024 KB)`);
+                    }
                 } else {
                     priceDatabase = {};
                     console.log('📝 ยังไม่มีฐานข้อมูลราคา - เริ่มต้นใหม่');
@@ -3625,8 +3754,22 @@
                 // เก็บข้อมูลใน global เพื่อให้ filter ได้
                 window.allPriceItems = items;
 
+                console.log('📊 ข้อมูลฐานข้อมูลราคา:', {
+                    จำนวนทั้งหมด: items.length,
+                    ขนาดข้อมูล: JSON.stringify(priceDatabase).length + ' bytes',
+                    ตัวอย่าง_5_รายการแรก: items.slice(0, 5).map(i => i.item),
+                    ตัวอย่าง_5_รายการสุดท้าย: items.slice(-5).map(i => i.item)
+                });
+
                 if (items.length === 0) {
-                    document.getElementById('priceDbContent').innerHTML = '<p style="text-align: center; color: #718096; padding: 2rem;">ยังไม่มีข้อมูลในฐานข้อมูลราคา</p>';
+                    document.getElementById('priceDbContent').innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <p style="color: #718096; margin-bottom: 1rem;">ยังไม่มีข้อมูลในฐานข้อมูลราคา</p>
+                            <button class="btn btn-primary btn-small" onclick="checkFirebaseData()">
+                                🔍 ตรวจสอบข้อมูลใน Firebase
+                            </button>
+                        </div>
+                    `;
                 } else {
                     renderPriceDatabase(items);
                 }
@@ -3651,42 +3794,248 @@
 
         // Render price database table
         function renderPriceDatabase(items) {
+            const dataSize = JSON.stringify(priceDatabase).length;
+            const dataSizeKB = (dataSize / 1024).toFixed(2);
+            const maxSizeKB = 1024; // Firebase limit 1 MB
+            const percentage = ((dataSize / 1024) / maxSizeKB * 100).toFixed(1);
+            
             document.getElementById('priceDbContent').innerHTML = `
-                <div style="margin-bottom: 0.5rem; color: #718096;">
-                    แสดง ${items.length} รายการ
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="color: #718096;">
+                            <strong style="color: var(--primary); font-size: 1.1rem;">แสดง ${items.length} รายการ</strong> 
+                            <span style="font-size: 0.85rem;">(ขนาด: ${dataSizeKB} KB / ${maxSizeKB} KB = ${percentage}%)</span>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary btn-small" onclick="checkFirebaseData()">
+                                🔍 ตรวจสอบ Firebase
+                            </button>
+                            <button class="btn btn-warning btn-small" onclick="reloadPriceDatabase()">
+                                🔄 โหลดใหม่
+                            </button>
+                            <button class="btn btn-success btn-small" onclick="exportPriceDatabase()">
+                                📊 ส่งออก Excel
+                            </button>
+                        </div>
+                    </div>
+                    ${percentage > 80 ? `
+                    <div style="padding: 0.75rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <p style="margin: 0; color: #92400e; font-size: 0.85rem;">
+                            ⚠️ <strong>คำเตือน:</strong> ข้อมูลใช้พื้นที่ ${percentage}% แล้ว ควรส่งออกเป็น backup
+                        </p>
+                    </div>
+                    ` : ''}
+                    <div style="padding: 0.75rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <p style="margin: 0; color: #1e40af; font-size: 0.85rem;">
+                            💡 <strong>หมายเหตุ:</strong> ระบบแสดงข้อมูลทั้งหมดที่มีในฐานข้อมูล ไม่มีการจำกัดจำนวน
+                        </p>
+                    </div>
                 </div>
-                <table class="price-history-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 60px;">ลำดับ</th>
-                            <th>รายการ</th>
-                            <th style="width: 120px;">ราคา (บาท)</th>
-                            <th style="width: 100px;">หน่วยนับ</th>
-                            <th style="width: 100px;">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map((item, index) => {
-                            const key = item.item.toLowerCase().trim();
-                            return `
+                <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table class="price-history-table">
+                        <thead style="position: sticky; top: 0; z-index: 10; background: var(--primary);">
                             <tr>
-                                <td style="text-align: center;">${index + 1}</td>
-                                <td>${item.item}</td>
-                                <td style="text-align: right;">${item.price}</td>
-                                <td>${item.unit}</td>
-                                <td style="text-align: center;">
-                                    <button class="btn-icon-small btn-icon-edit" onclick="editPriceItem('${key.replace(/'/g, "\\'")}')">
-                                        ✏️
-                                    </button>
-                                    <button class="btn-icon-small btn-icon-delete" onclick="deletePriceItem('${key.replace(/'/g, "\\'")}')">
-                                        🗑️
-                                    </button>
-                                </td>
+                                <th style="width: 60px;">ลำดับ</th>
+                                <th>รายการ</th>
+                                <th style="width: 120px;">ราคา (บาท)</th>
+                                <th style="width: 100px;">หน่วยนับ</th>
+                                <th style="width: 100px;">จัดการ</th>
                             </tr>
-                        `}).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${items.map((item, index) => {
+                                const key = item.item.toLowerCase().trim();
+                                return `
+                                <tr>
+                                    <td style="text-align: center;">${index + 1}</td>
+                                    <td>${item.item}</td>
+                                    <td style="text-align: right;">${item.price}</td>
+                                    <td>${item.unit}</td>
+                                    <td style="text-align: center;">
+                                        <button class="btn-icon-small btn-icon-edit" onclick="editPriceItem('${key.replace(/'/g, "\\'")}')">
+                                            ✏️
+                                        </button>
+                                        <button class="btn-icon-small btn-icon-delete" onclick="deletePriceItem('${key.replace(/'/g, "\\'")}')">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            `}).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 0.5rem; text-align: right; color: #718096; font-size: 0.85rem;">
+                    แสดงรายการที่ 1 - ${items.length} จากทั้งหมด ${items.length} รายการ
+                </div>
             `;
+        }
+
+        // Export price database to Excel
+        function exportPriceDatabase() {
+            try {
+                if (!window.allPriceItems || window.allPriceItems.length === 0) {
+                    Swal.fire({
+                        title: 'ไม่มีข้อมูล',
+                        text: 'ไม่มีข้อมูลในฐานข้อมูลราคาให้ส่งออก',
+                        icon: 'warning',
+                        confirmButtonColor: '#1a365d'
+                    });
+                    return;
+                }
+
+                const exportData = window.allPriceItems.map((item, index) => ({
+                    'ลำดับ': index + 1,
+                    'รายการ': item.item,
+                    'ราคา': item.price,
+                    'หน่วยนับ': item.unit,
+                    'อัปเดตล่าสุด': item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString('th-TH') : '-'
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "ฐานข้อมูลราคา");
+                
+                const fileName = `ฐานข้อมูลราคาสินค้า_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                Swal.fire({
+                    title: 'สำเร็จ!',
+                    html: `ส่งออกฐานข้อมูลราคา <strong>${window.allPriceItems.length} รายการ</strong><br>เป็นไฟล์ Excel เรียบร้อยแล้ว`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('❌ Error exporting price database:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถส่งออกข้อมูลได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            }
+        }
+
+        // Check Firebase data
+        async function checkFirebaseData() {
+            try {
+                showLoading(true);
+                
+                const docRef = window.firestore.doc(window.db, 'settings', 'price-database');
+                const docSnap = await window.firestore.getDoc(docRef);
+                
+                showLoading(false);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const rawData = data.data || {};
+                    const itemCount = Object.keys(rawData).length;
+                    const dataSize = JSON.stringify(rawData).length;
+                    const dataSizeKB = (dataSize / 1024).toFixed(2);
+                    
+                    const sampleItems = Object.keys(rawData).slice(0, 10);
+                    
+                    await Swal.fire({
+                        title: '🔍 ข้อมูลใน Firebase',
+                        html: `
+                            <div style="text-align: left; padding: 1rem;">
+                                <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px; margin-bottom: 1rem;">
+                                    <p style="margin: 0; color: #1e40af; font-size: 0.95rem; line-height: 1.8;">
+                                        <strong>📊 สถิติข้อมูล:</strong><br>
+                                        • จำนวนรายการ: <strong>${itemCount} รายการ</strong><br>
+                                        • ขนาดข้อมูล: <strong>${dataSizeKB} KB</strong><br>
+                                        • อัปเดตล่าสุด: <strong>${data.lastUpdated || 'ไม่ระบุ'}</strong>
+                                    </p>
+                                </div>
+                                
+                                <div style="padding: 1rem; background: #f3f4f6; border-radius: 6px; margin-top: 1rem;">
+                                    <p style="margin: 0 0 0.5rem 0; font-weight: 600; color: #374151;">ตัวอย่างรายการ (10 รายการแรก):</p>
+                                    <ol style="margin: 0; padding-left: 1.5rem; color: #4b5563; font-size: 0.9rem; line-height: 1.6;">
+                                        ${sampleItems.map(key => `<li>${rawData[key].item}</li>`).join('')}
+                                    </ol>
+                                </div>
+                                
+                                ${itemCount !== Object.keys(priceDatabase).length ? `
+                                <div style="padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 6px; margin-top: 1rem;">
+                                    <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">
+                                        <strong>⚠️ คำเตือน:</strong> จำนวนรายการใน Firebase (${itemCount}) 
+                                        ไม่ตรงกับที่แสดงบนหน้าจอ (${Object.keys(priceDatabase).length})
+                                    </p>
+                                </div>
+                                ` : ''}
+                            </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonColor: '#1a365d',
+                        width: '600px'
+                    });
+                } else {
+                    await Swal.fire({
+                        title: 'ไม่พบข้อมูล',
+                        text: 'ไม่มีเอกสาร price-database ใน Firebase',
+                        icon: 'warning',
+                        confirmButtonColor: '#1a365d'
+                    });
+                }
+            } catch (error) {
+                showLoading(false);
+                console.error('❌ Error checking Firebase:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถตรวจสอบข้อมูลได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            }
+        }
+
+        // Reload price database
+        async function reloadPriceDatabase() {
+            try {
+                showLoading(true);
+                
+                // โหลดข้อมูลใหม่จาก Firebase
+                await loadPriceDatabase();
+                
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+                
+                window.allPriceItems = items;
+                
+                showLoading(false);
+                
+                if (items.length === 0) {
+                    document.getElementById('priceDbContent').innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <p style="color: #718096; margin-bottom: 1rem;">ยังไม่มีข้อมูลในฐานข้อมูลราคา</p>
+                            <button class="btn btn-primary btn-small" onclick="checkFirebaseData()">
+                                🔍 ตรวจสอบข้อมูลใน Firebase
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    renderPriceDatabase(items);
+                }
+                
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    html: `โหลดข้อมูลใหม่เรียบร้อยแล้ว<br>พบ <strong>${items.length} รายการ</strong>`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
+            } catch (error) {
+                showLoading(false);
+                console.error('❌ Error reloading:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถโหลดข้อมูลใหม่ได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            }
         }
 
         // Filter price database
@@ -4118,7 +4467,11 @@
 
                         await saveAdminSettings();
                         
+                        // ปิด loading และรอให้หน้าเว็บ render ก่อน
                         showLoading(false);
+                        
+                        // ใช้ setTimeout เพื่อให้แน่ใจว่า loading หายก่อนแสดง Swal
+                        await new Promise(resolve => setTimeout(resolve, 100));
 
                         await Swal.fire({
                             title: '✅ บันทึกสำเร็จ!',
