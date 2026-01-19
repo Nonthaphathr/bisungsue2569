@@ -1616,6 +1616,14 @@
                         <p style="margin-bottom: 1rem; color: #718096;">
                             นำเข้าไฟล์ Excel เพื่อสร้างฐานข้อมูลราคาสินค้าอ้างอิง หรือคลิก "ดูฐานข้อมูลราคา" เพื่อเพิ่ม/แก้ไข/ลบรายการสินค้า
                         </p>
+                        <div style="padding: 1rem; background: #dcfce7; border-left: 4px solid #22c55e; border-radius: 8px; margin-bottom: 1rem;">
+                            <p style="margin: 0; color: #166534; font-size: 0.9rem; line-height: 1.8;">
+                                <strong>✅ ระบบป้องกันข้อมูลสูญหาย:</strong><br>
+                                • ทุกครั้งที่บันทึก ระบบจะ merge ข้อมูลใหม่กับข้อมูลเก่าโดยอัตโนมัติ<br>
+                                • ข้อมูลที่บันทึกจากหน้าสร้างรายการและจากการ Import จะไม่กระทบกัน<br>
+                                • รายการเดิมจะถูกเก็บไว้ แม้จะมีการนำเข้าข้อมูลใหม่
+                            </p>
+                        </div>
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <label class="file-input-label">
                                 📁 นำเข้าไฟล์ Excel
@@ -1628,6 +1636,26 @@
                         <p style="margin-top: 1rem; font-size: 0.85rem; color: #718096;">
                             รูปแบบไฟล์: คอลัมน์ที่ 1 = รายการสินค้า, คอลัมน์ที่ 2 = ราคา, คอลัมน์ที่ 3 = หน่วยนับ
                         </p>
+                    </div>
+
+                    <!-- Bulk Delete Price Items -->
+                    <div class="admin-card">
+                        <h3>🗑️ ลบรายการสินค้าจากฐานข้อมูลราคา</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">
+                            ลบรายการสินค้าที่ไม่ต้องการออกจากฐานข้อมูลราคาได้ทีละหลายรายการ
+                        </p>
+                        <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 8px; margin-bottom: 1rem;">
+                            <p style="margin: 0; color: #1e40af; font-size: 0.9rem; line-height: 1.8;">
+                                <strong>💡 หมายเหตุสำคัญ:</strong><br>
+                                • การลบจะลบเฉพาะจาก<strong>ฐานข้อมูลราคาอ้างอิง</strong>เท่านั้น<br>
+                                • <strong>ไม่กระทบ</strong>รายการที่ครูสร้างและบันทึกไว้แล้ว<br>
+                                • รายการที่ลบยังคงปรากฏในเอกสารเดิมที่สร้างไว้แล้ว<br>
+                                • ต้องใช้รหัสผ่านแอดมินเพื่อยืนยันการลบ
+                            </p>
+                        </div>
+                        <button class="btn btn-danger" onclick="showBulkDeletePriceItems()">
+                            🗑️ จัดการลบรายการสินค้า
+                        </button>
                     </div>
 
                     <!-- Special Note Toggle -->
@@ -1717,6 +1745,42 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="closeModal('priceDbModal')">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Price Items Modal -->
+    <div class="modal-overlay" id="bulkDeleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🗑️ จัดการลบรายการสินค้า</h3>
+                <button class="modal-close" onclick="closeModal('bulkDeleteModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="background: white; padding: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="bulkDeleteSearch" class="form-control" 
+                           placeholder="🔍 ค้นหารายการสินค้า..." 
+                           oninput="filterBulkDeleteList()"
+                           style="max-width: 400px;">
+                </div>
+                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary btn-small" onclick="selectAllBulkDelete()">
+                        ☑️ เลือกทั้งหมด
+                    </button>
+                    <button class="btn btn-warning btn-small" onclick="deselectAllBulkDelete()">
+                        ◻️ ยกเลิกทั้งหมด
+                    </button>
+                    <span id="bulkDeleteCount" style="font-weight: 600; color: var(--primary);">
+                        เลือก 0 รายการ
+                    </span>
+                </div>
+                <div id="bulkDeleteContent">
+                    <!-- Items will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('bulkDeleteModal')">ปิด</button>
+                <button class="btn btn-danger" onclick="confirmBulkDelete()">🗑️ ลบรายการที่เลือก</button>
             </div>
         </div>
     </div>
@@ -2243,20 +2307,60 @@
                     data
                 );
 
-                // บันทึกราคาสินค้าลงฐานข้อมูล
+                // โหลดฐานข้อมูลราคาปัจจุบันจาก Firebase ก่อน
+                console.log('📥 กำลังโหลดฐานข้อมูลราคาก่อนบันทึกรายการใหม่...');
+                await loadPriceDatabase();
+                
+                const originalCount = Object.keys(priceDatabase).length;
+                console.log(`📊 ฐานข้อมูลราคาปัจจุบัน: ${originalCount} รายการ`);
+
+                // บันทึกราคาสินค้าลงฐานข้อมูล (เพิ่มเข้าไป ไม่ทับ)
+                let addedCount = 0;
+                let updatedCount = 0;
+                let skippedCount = 0;
+                
                 for (const item of data.items) {
                     if (item.item && item.price) {
-                        const key = item.item.toLowerCase().trim();
-                        if (!priceDatabase[key] || parseFloat(item.price) !== parseFloat(priceDatabase[key].price)) {
+                        // Normalize key: lowercase, trim, และลบช่องว่างซ้ำ
+                        const normalizedItem = item.item.trim().replace(/\s+/g, ' ');
+                        const key = normalizedItem.toLowerCase();
+                        
+                        if (!priceDatabase[key]) {
+                            // รายการใหม่ - เพิ่มเข้าไป
                             priceDatabase[key] = {
-                                item: item.item,
+                                item: normalizedItem,
                                 price: item.price,
                                 unit: item.unit,
                                 lastUpdated: new Date().toISOString()
                             };
+                            addedCount++;
+                            console.log(`➕ เพิ่ม: ${normalizedItem} (${item.price} บาท)`);
+                        } else if (parseFloat(item.price) !== parseFloat(priceDatabase[key].price)) {
+                            // รายการเดิมแต่ราคาต่าง - อัปเดต
+                            priceDatabase[key] = {
+                                item: normalizedItem,
+                                price: item.price,
+                                unit: item.unit,
+                                lastUpdated: new Date().toISOString()
+                            };
+                            updatedCount++;
+                            console.log(`🔄 อัปเดต: ${normalizedItem} (${priceDatabase[key].price} → ${item.price} บาท)`);
+                        } else {
+                            // รายการเดิมและราคาเท่าเดิม - ข้าม
+                            skippedCount++;
                         }
                     }
                 }
+                
+                const finalCount = Object.keys(priceDatabase).length;
+                console.log(`✅ บันทึกฐานข้อมูลราคาเสร็จสิ้น:`, {
+                    ฐานข้อมูลเดิม: originalCount,
+                    เพิ่มใหม่: addedCount,
+                    อัปเดต: updatedCount,
+                    ข้าม: skippedCount,
+                    รวมทั้งหมด: finalCount
+                });
+                
                 await savePriceDatabase();
 
                 await Swal.fire({
@@ -3512,9 +3616,12 @@
                         
                         rows.slice(1).forEach(row => {
                             if (row[0]) {
-                                const key = row[0].toLowerCase().trim();
+                                // Normalize key: trim, replace multiple spaces, lowercase
+                                const normalizedItem = String(row[0]).trim().replace(/\s+/g, ' ');
+                                const key = normalizedItem.toLowerCase();
+                                
                                 newPriceDatabase[key] = {
-                                    item: row[0],
+                                    item: normalizedItem,
                                     price: row[1] || '',
                                     unit: row[2] || '',
                                     lastUpdated: new Date().toISOString()
@@ -3524,9 +3631,14 @@
                         });
 
                         showLoading(false);
+                        
+                        // โหลดฐานข้อมูลปัจจุบันจาก Firebase ก่อน
+                        console.log('📥 กำลังโหลดฐานข้อมูลราคาปัจจุบันก่อน merge...');
+                        await loadPriceDatabase();
 
                         // ถามผู้ใช้ว่าจะ merge หรือ replace
                         const currentCount = Object.keys(priceDatabase).length;
+                        console.log(`📊 ฐานข้อมูลปัจจุบัน: ${currentCount} รายการ, นำเข้า: ${importCount} รายการ`);
                         
                         const result = await Swal.fire({
                             title: '📊 ยืนยันการนำเข้าข้อมูล',
@@ -3571,18 +3683,34 @@
                             // Merge - เพิ่มเข้าไป
                             let addedCount = 0;
                             let updatedCount = 0;
+                            const beforeCount = Object.keys(priceDatabase).length;
+                            
+                            console.log('🔄 เริ่ม Merge ข้อมูล...');
                             
                             for (const [key, value] of Object.entries(newPriceDatabase)) {
                                 if (priceDatabase[key]) {
+                                    console.log(`🔄 อัปเดต: ${value.item} (${priceDatabase[key].price} → ${value.price} บาท)`);
                                     updatedCount++;
                                 } else {
+                                    console.log(`➕ เพิ่ม: ${value.item} (${value.price} บาท)`);
                                     addedCount++;
                                 }
                                 priceDatabase[key] = value;
                             }
                             
+                            const afterCount = Object.keys(priceDatabase).length;
+                            
+                            console.log(`✅ Merge เสร็จสิ้น:`, {
+                                ก่อน: beforeCount,
+                                เพิ่มใหม่: addedCount,
+                                อัปเดต: updatedCount,
+                                หลัง: afterCount,
+                                ผลต่าง: afterCount - beforeCount
+                            });
+                            
                             showLoading(true);
-                            await savePriceDatabase();
+                            // บันทึกแบบ SKIP MERGE เพราะเรา merge เองแล้วด้านบน
+                            await savePriceDatabase(true);
                             showLoading(false);
                             
                             await Swal.fire({
@@ -3592,9 +3720,10 @@
                                         <p style="margin-bottom: 1rem;">นำเข้าฐานข้อมูลราคาแบบ Merge เรียบร้อยแล้ว</p>
                                         <div style="padding: 1rem; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px;">
                                             <p style="margin: 0; color: #1e40af; font-size: 0.9rem; line-height: 1.8;">
+                                                • ก่อน Merge: <strong>${beforeCount}</strong> รายการ<br>
                                                 • รายการใหม่: <strong>${addedCount}</strong> รายการ<br>
                                                 • อัปเดต: <strong>${updatedCount}</strong> รายการ<br>
-                                                • <strong>รวมทั้งหมด: ${Object.keys(priceDatabase).length} รายการ</strong>
+                                                • <strong>รวมทั้งหมด: ${afterCount} รายการ</strong>
                                             </p>
                                         </div>
                                     </div>
@@ -3630,7 +3759,8 @@
                                 priceDatabase = newPriceDatabase;
                                 
                                 showLoading(true);
-                                await savePriceDatabase();
+                                // บันทึกแบบ Replace (SKIP MERGE เพื่อทับข้อมูลเดิมทั้งหมด)
+                                await savePriceDatabase(true);
                                 showLoading(false);
                                 
                                 await Swal.fire({
@@ -3694,7 +3824,7 @@
         }
 
         // Save price database
-        async function savePriceDatabase() {
+        async function savePriceDatabase(skipMerge = false) {
             try {
                 if (!window.db || !window.firestore) {
                     throw new Error('Firebase ยังไม่พร้อมใช้งาน กรุณารอสักครู่แล้วลองใหม่');
@@ -3702,26 +3832,78 @@
 
                 console.log('💾 กำลังบันทึกฐานข้อมูลราคา...', {
                     itemCount: Object.keys(priceDatabase).length,
+                    skipMerge: skipMerge,
                     sample: Object.keys(priceDatabase).slice(0, 3)
                 });
 
                 const docRef = window.firestore.doc(window.db, 'settings', 'price-database');
                 
-                await window.firestore.setDoc(
-                    docRef,
-                    { data: priceDatabase, lastUpdated: new Date().toISOString() }
-                );
+                if (skipMerge) {
+                    // ⚠️ SKIP MERGE MODE: บันทึกทับเลย (ใช้เมื่อลบหรือ Replace)
+                    console.log('⚠️ โหมด SKIP MERGE: บันทึกข้อมูลทับโดยไม่ merge');
+                    
+                    const finalCount = Object.keys(priceDatabase).length;
+                    
+                    // บันทึกข้อมูลทับเลย
+                    await window.firestore.setDoc(
+                        docRef,
+                        { data: priceDatabase, lastUpdated: new Date().toISOString() }
+                    );
 
-                console.log('✅ บันทึกฐานข้อมูลราคาสำเร็จ');
+                    console.log(`✅ บันทึกฐานข้อมูลราคาสำเร็จ (ทับเดิม): ${finalCount} รายการ`);
+                    
+                } else {
+                    // 🔄 AUTO MERGE MODE: โหลดข้อมูลล่าสุดมา merge ก่อน (ป้องกันข้อมูลสูญหาย)
+                    console.log('🔄 กำลังโหลดข้อมูลล่าสุดจาก Firebase เพื่อ merge...');
+                    const currentDoc = await window.firestore.getDoc(docRef);
+                    const currentData = currentDoc.exists() ? (currentDoc.data().data || {}) : {};
+                    const currentCount = Object.keys(currentData).length;
+                    const newCount = Object.keys(priceDatabase).length;
+                    
+                    console.log(`📊 ข้อมูลใน Firebase: ${currentCount} รายการ, ข้อมูลที่จะบันทึก: ${newCount} รายการ`);
+                    
+                    // Merge: เอาข้อมูลเก่าที่ไม่มีในข้อมูลใหม่มาเพิ่ม
+                    let mergedCount = 0;
+                    for (const [key, value] of Object.entries(currentData)) {
+                        if (!priceDatabase[key]) {
+                            // รายการนี้มีใน Firebase แต่ไม่มีในข้อมูลใหม่ → เก็บไว้
+                            priceDatabase[key] = value;
+                            mergedCount++;
+                        }
+                    }
+                    
+                    const finalCount = Object.keys(priceDatabase).length;
+                    
+                    console.log(`✅ Merge เสร็จสิ้น:`, {
+                        'ข้อมูลเดิมใน Firebase': currentCount,
+                        'ข้อมูลใหม่': newCount,
+                        'รายการที่ merge มาเพิ่ม': mergedCount,
+                        'รวมทั้งหมด': finalCount
+                    });
+                    
+                    // บันทึกข้อมูลที่ merge แล้ว
+                    await window.firestore.setDoc(
+                        docRef,
+                        { data: priceDatabase, lastUpdated: new Date().toISOString() }
+                    );
+
+                    console.log('✅ บันทึกฐานข้อมูลราคาสำเร็จ');
+                }
                 
                 // ตรวจสอบว่าข้อมูลถูกบันทึกจริงหรือไม่
                 const verifyDoc = await window.firestore.getDoc(docRef);
                 if (verifyDoc.exists()) {
                     const savedData = verifyDoc.data();
+                    const verifyCount = Object.keys(savedData.data || {}).length;
                     console.log('✔️ ยืนยัน: พบข้อมูลใน Firebase', {
-                        itemCount: Object.keys(savedData.data || {}).length,
+                        itemCount: verifyCount,
                         lastUpdated: savedData.lastUpdated
                     });
+                    
+                    const expectedCount = Object.keys(priceDatabase).length;
+                    if (verifyCount !== expectedCount) {
+                        console.warn(`⚠️ คำเตือน: จำนวนไม่ตรงกัน! (ควรเป็น ${expectedCount} แต่ได้ ${verifyCount})`);
+                    }
                 } else {
                     console.error('❌ ตรวจสอบไม่พบข้อมูลใน Firebase หลังบันทึก!');
                     throw new Error('ข้อมูลไม่ถูกบันทึกใน Firebase');
@@ -4079,6 +4261,302 @@
             }
         }
 
+        // Show bulk delete price items modal
+        async function showBulkDeletePriceItems() {
+            try {
+                showLoading(true);
+                
+                // โหลดข้อมูลล่าสุด
+                await loadPriceDatabase();
+                
+                const items = Object.values(priceDatabase).sort((a, b) => 
+                    a.item.localeCompare(b.item, 'th')
+                );
+                
+                window.bulkDeleteItems = items;
+                
+                showLoading(false);
+                
+                if (items.length === 0) {
+                    Swal.fire({
+                        title: 'ไม่มีรายการ',
+                        text: 'ยังไม่มีรายการสินค้าในฐานข้อมูล',
+                        icon: 'info',
+                        confirmButtonColor: '#1a365d'
+                    });
+                    return;
+                }
+                
+                renderBulkDeleteList(items);
+                document.getElementById('bulkDeleteSearch').value = '';
+                updateBulkDeleteCount();
+                document.getElementById('bulkDeleteModal').classList.add('active');
+                
+            } catch (error) {
+                showLoading(false);
+                console.error('❌ Error loading items:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถโหลดรายการได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            }
+        }
+
+        // Render bulk delete list
+        function renderBulkDeleteList(items) {
+            const html = `
+                <div style="max-height: 50vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table class="price-history-table">
+                        <thead style="position: sticky; top: 0; z-index: 10; background: var(--primary);">
+                            <tr>
+                                <th style="width: 60px; text-align: center;">
+                                    <input type="checkbox" id="selectAllCheckbox" 
+                                           onchange="toggleAllBulkDelete(this.checked)"
+                                           style="width: 20px; height: 20px; cursor: pointer;">
+                                </th>
+                                <th style="width: 60px;">ลำดับ</th>
+                                <th>รายการสินค้า</th>
+                                <th style="width: 120px;">ราคา (บาท)</th>
+                                <th style="width: 100px;">หน่วยนับ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkDeleteTableBody">
+                            ${items.map((item, index) => {
+                                const key = item.item.toLowerCase().trim();
+                                return `
+                                <tr class="bulk-delete-row" data-item-key="${key}" data-item-name="${item.item}">
+                                    <td style="text-align: center;">
+                                        <input type="checkbox" class="bulk-delete-checkbox" 
+                                               data-key="${key}"
+                                               onchange="updateBulkDeleteCount()"
+                                               style="width: 20px; height: 20px; cursor: pointer;">
+                                    </td>
+                                    <td style="text-align: center;">${index + 1}</td>
+                                    <td>${item.item}</td>
+                                    <td style="text-align: right;">${item.price}</td>
+                                    <td>${item.unit}</td>
+                                </tr>
+                            `}).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 1rem; text-align: right; color: #718096; font-size: 0.85rem;">
+                    แสดงรายการทั้งหมด ${items.length} รายการ
+                </div>
+            `;
+            document.getElementById('bulkDeleteContent').innerHTML = html;
+        }
+
+        // Toggle all checkboxes
+        function toggleAllBulkDelete(checked) {
+            const checkboxes = document.querySelectorAll('.bulk-delete-checkbox');
+            checkboxes.forEach(cb => {
+                const row = cb.closest('tr');
+                if (row.style.display !== 'none') {
+                    cb.checked = checked;
+                }
+            });
+            updateBulkDeleteCount();
+        }
+
+        // Select all
+        function selectAllBulkDelete() {
+            document.getElementById('selectAllCheckbox').checked = true;
+            toggleAllBulkDelete(true);
+        }
+
+        // Deselect all
+        function deselectAllBulkDelete() {
+            document.getElementById('selectAllCheckbox').checked = false;
+            toggleAllBulkDelete(false);
+        }
+
+        // Update selected count
+        function updateBulkDeleteCount() {
+            const checkboxes = document.querySelectorAll('.bulk-delete-checkbox:checked');
+            const visibleChecked = Array.from(checkboxes).filter(cb => {
+                const row = cb.closest('tr');
+                return row.style.display !== 'none';
+            });
+            const count = visibleChecked.length;
+            document.getElementById('bulkDeleteCount').textContent = `เลือก ${count} รายการ`;
+        }
+
+        // Filter bulk delete list
+        function filterBulkDeleteList() {
+            const searchText = document.getElementById('bulkDeleteSearch').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.bulk-delete-row');
+            
+            rows.forEach(row => {
+                const itemName = row.dataset.itemName.toLowerCase();
+                if (searchText === '' || itemName.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            updateBulkDeleteCount();
+        }
+
+        // Confirm bulk delete
+        async function confirmBulkDelete() {
+            const checkboxes = document.querySelectorAll('.bulk-delete-checkbox:checked');
+            const selectedKeys = Array.from(checkboxes)
+                .filter(cb => cb.closest('tr').style.display !== 'none')
+                .map(cb => cb.dataset.key);
+            
+            if (selectedKeys.length === 0) {
+                Swal.fire({
+                    title: 'กรุณาเลือกรายการ',
+                    text: 'กรุณาเลือกรายการที่ต้องการลบอย่างน้อย 1 รายการ',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            // ขอรหัสผ่านแอดมินก่อน
+            const passwordResult = await Swal.fire({
+                title: '🔐 ยืนยันตัวตนแอดมิน',
+                html: `
+                    <div style="text-align: left; padding: 1rem;">
+                        <div style="padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 6px; margin-bottom: 1rem;">
+                            <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">
+                                <strong>⚠️ การลบข้อมูล:</strong> ต้องการรหัสผ่านแอดมินเพื่อยืนยันการลบ
+                            </p>
+                        </div>
+                        <p style="margin-bottom: 0.5rem; color: #374151;">กรุณาใส่รหัสผ่านแอดมิน:</p>
+                    </div>
+                `,
+                input: 'password',
+                inputPlaceholder: 'รหัสผ่านแอดมิน',
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#1a365d',
+                cancelButtonColor: '#718096',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณาใส่รหัสผ่าน';
+                    }
+                    if (value !== '0000') {
+                        return 'รหัสผ่านไม่ถูกต้อง';
+                    }
+                }
+            });
+
+            if (!passwordResult.isConfirmed) return;
+
+            // รายการที่จะลบ
+            const itemsToDelete = selectedKeys.map(key => {
+                return priceDatabase[key].item;
+            });
+
+            // ยืนยันการลบอีกครั้ง
+            const confirmResult = await Swal.fire({
+                title: 'ยืนยันการลบ',
+                html: `
+                    <div style="text-align: left; padding: 1rem;">
+                        <p style="margin-bottom: 1rem;">ต้องการลบรายการต่อไปนี้หรือไม่?</p>
+                        <div style="max-height: 200px; overflow-y: auto; padding: 1rem; background: #f7fafc; border-radius: 8px; margin-bottom: 1rem;">
+                            <ol style="margin: 0; padding-left: 1.5rem; color: #374151; font-size: 0.9rem;">
+                                ${itemsToDelete.slice(0, 20).map(item => `<li>${item}</li>`).join('')}
+                                ${itemsToDelete.length > 20 ? `<li style="color: #6b7280; font-style: italic;">และอีก ${itemsToDelete.length - 20} รายการ...</li>` : ''}
+                            </ol>
+                        </div>
+                        <div style="padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 6px;">
+                            <p style="margin: 0; color: #991b1b; font-size: 0.9rem; line-height: 1.6;">
+                                <strong>⚠️ คำเตือน:</strong><br>
+                                • จะลบ <strong>${selectedKeys.length} รายการ</strong> จากฐานข้อมูลราคา<br>
+                                • การดำเนินการนี้ไม่สามารถย้อนกลับได้<br>
+                                • ไม่กระทบรายการที่ครูสร้างและบันทึกไว้แล้ว
+                            </p>
+                        </div>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: `ใช่, ลบ ${selectedKeys.length} รายการ`,
+                cancelButtonText: 'ยกเลิก',
+                width: '600px'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+
+            await executeBulkDelete(selectedKeys);
+        }
+
+        // Execute bulk delete
+        async function executeBulkDelete(keysToDelete) {
+            try {
+                showLoading(true);
+                
+                // โหลดข้อมูลล่าสุดจาก Firebase
+                await loadPriceDatabase();
+                
+                const beforeCount = Object.keys(priceDatabase).length;
+                console.log(`🗑️ กำลังลบ ${keysToDelete.length} รายการจาก ${beforeCount} รายการ...`);
+                
+                // ลบรายการที่เลือก
+                let deletedCount = 0;
+                keysToDelete.forEach(key => {
+                    if (priceDatabase[key]) {
+                        console.log(`🗑️ ลบ: ${priceDatabase[key].item}`);
+                        delete priceDatabase[key];
+                        deletedCount++;
+                    }
+                });
+                
+                // บันทึกกลับไป Firebase (SKIP MERGE เพื่อไม่ให้รายการที่ลบกลับมา)
+                await savePriceDatabase(true);
+                
+                const afterCount = Object.keys(priceDatabase).length;
+                
+                console.log(`✅ ลบเสร็จสิ้น:`, {
+                    ก่อนลบ: beforeCount,
+                    ลบไป: deletedCount,
+                    คงเหลือ: afterCount
+                });
+                
+                showLoading(false);
+                
+                // ปิด modal
+                closeModal('bulkDeleteModal');
+                
+                // แสดงผลสำเร็จ
+                await Swal.fire({
+                    title: '✅ ลบสำเร็จ!',
+                    html: `
+                        <div style="text-align: left; padding: 1rem;">
+                            <div style="padding: 1rem; background: #dcfce7; border-left: 4px solid #22c55e; border-radius: 6px;">
+                                <p style="margin: 0; color: #166534; font-size: 0.9rem; line-height: 1.8;">
+                                    • ลบรายการ: <strong>${deletedCount}</strong> รายการ<br>
+                                    • ฐานข้อมูลราคาคงเหลือ: <strong>${afterCount}</strong> รายการ
+                                </p>
+                            </div>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#10b981'
+                });
+                
+            } catch (error) {
+                showLoading(false);
+                console.error('❌ Error deleting items:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถลบรายการได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            }
+        }
+
         // Filter price database
         function filterPriceDatabase() {
             const searchText = document.getElementById('priceDbSearch').value.toLowerCase().trim();
@@ -4263,8 +4741,8 @@
 
                 delete priceDatabase[key];
                 
-                // Save to Firebase
-                await savePriceDatabase();
+                // Save to Firebase (SKIP MERGE เพื่อไม่ให้รายการที่ลบกลับมา)
+                await savePriceDatabase(true);
 
                 // Refresh display
                 const items = Object.values(priceDatabase).sort((a, b) => 
