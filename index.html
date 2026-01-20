@@ -2602,7 +2602,8 @@
 
         function generateSingleDetailDocument(data, pageBreak) {
             const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
-            const fontSize = data.useSmallFont ? '11px' : '16px'; // ลด 30% จาก 16px เป็น 11px
+            // โน้ตพิเศษใช้ฟอนต์ขนาดปกติเสมอ (16px) ไม่ว่ามีกี่คน
+            const fontSize = '16px';
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
@@ -2666,7 +2667,8 @@
             const date = '.............. เดือน .......................................... พ.ศ. ...............';
             const docTypeText = data.docType === 'ซื้อ' ? 'ซื้อสินค้าวัสดุ-อุปกรณ์' : 'จ้างบริการ';
             const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
-            const fontSize = data.useSmallFont ? '11px' : '16px'; // ลด 30% จาก 16px เป็น 11px
+            // โน้ตพิเศษใช้ฟอนต์ขนาดปกติเสมอ (16px) ไม่ว่ามีกี่คน
+            const fontSize = '16px';
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
@@ -3351,7 +3353,6 @@
 
             // สร้างข้อความโน้ตรวม
             let combinedSpecialNote = '';
-            let useSmallFont = false;
             
             if (specialNotes.length > 0) {
                 // ลบข้อมูลซ้ำ โดยรวมช่วงลำดับของคนเดียวกัน
@@ -3386,10 +3387,7 @@
                     }).join('<br>');
                     combinedSpecialNote = `หมายเหตุ: หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่<br>${noteLines}`;
                     
-                    // ถ้ามากกว่า 2 คน ให้ใช้ font เล็ก
-                    if (uniqueNotes.length > 2) {
-                        useSmallFont = true;
-                    }
+                    // โน้ต: ใช้ฟอนต์ขนาดปกติเสมอ (16px) ไม่ว่าจะมีกี่คน
                 }
             }
 
@@ -3447,8 +3445,7 @@
                 grandTotal: totalBudget.toFixed(2),
                 // ใช้โน้ตที่รวมแล้ว
                 specialNoteEnabled: combinedSpecialNote !== '',
-                specialNote: combinedSpecialNote,
-                useSmallFont: useSmallFont  // ส่งข้อมูลว่าควรใช้ font เล็กหรือไม่
+                specialNote: combinedSpecialNote
             };
 
             const html = type === 'detail' ? 
