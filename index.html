@@ -1423,6 +1423,12 @@
                         <button class="btn btn-success btn-small btn-price-db" onclick="showPriceDatabase()">
                             💰 ดูฐานข้อมูลราคา
                         </button>
+                        <button class="btn btn-primary btn-small" onclick="randomizeItems()">
+                            🎲 สุ่มรายการสินค้า
+                        </button>
+                        <button class="btn btn-warning btn-small" onclick="loadPreviousYearData()">
+                            📥 ดึงข้อมูลปีที่แล้ว
+                        </button>
                     </div>
                     <div class="table-container">
                         <table class="items-table" id="itemsTable">
@@ -1504,6 +1510,38 @@
                                 </select>
                             </div>
                         </div>
+                        
+                        <!-- ตัวเลือกเพิ่มเติม -->
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                            <h4 style="margin-bottom: 1rem; font-size: 1rem; color: #1e40af;">⚙️ ตัวเลือกการพิมพ์</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="showDepartmentHeader" style="width: 18px; height: 18px; cursor: pointer;">
+                                    <span style="font-size: 0.95rem;">📋 แสดงกลุ่มสาระที่หัวกระดาษ</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="showAllSpecialNotes" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                    <span style="font-size: 0.95rem;">💬 แสดงโน้ตพิเศษ</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- ปุ่มควบคุม -->
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button class="btn btn-warning btn-small" onclick="selectAllFiltered()">
+                                ✅ เลือกทั้งหมด
+                            </button>
+                            <button class="btn btn-warning btn-small" onclick="deselectAllFiltered()">
+                                ❌ ยกเลือกทั้งหมด
+                            </button>
+                            <button class="btn btn-success btn-small" onclick="bulkToggleSpecialNotes(true)">
+                                💬 เปิดโน้ตพิเศษทั้งหมด
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="bulkToggleSpecialNotes(false)">
+                                🔇 ปิดโน้ตพิเศษทั้งหมด
+                            </button>
+                        </div>
+                        
                         <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                             <button class="btn btn-primary btn-small" onclick="printMergedDocuments('detail')">
                                 🖨️ พิมพ์รวมใบรายละเอียด (แยกหน้า)
@@ -1614,6 +1652,26 @@
                         <p style="margin-bottom: 1rem; color: #718096;">ส่งออกรายการสินค้าและราคาทั้งหมดที่ถูกบันทึกในระบบเป็นไฟล์ Excel</p>
                         <button class="btn btn-success" onclick="exportAllData()">
                             📊 ส่งออกข้อมูลทั้งหมดเป็น Excel
+                        </button>
+                    </div>
+
+                    <!-- Clear All Records -->
+                    <div class="admin-card">
+                        <h3>🗑️ ล้างรายการทั้งหมด</h3>
+                        <p style="margin-bottom: 1rem; color: #718096;">
+                            ลบรายการสั่งซื้อ/จ้างทั้งหมดออกจากระบบ เพื่อรีเซ็ตสำหรับปีการศึกษาใหม่
+                        </p>
+                        <div style="padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; border-radius: 8px; margin-bottom: 1rem;">
+                            <p style="margin: 0; color: #991b1b; font-size: 0.9rem; line-height: 1.8;">
+                                <strong>⚠️ คำเตือน:</strong><br>
+                                • การดำเนินการนี้จะ<strong>ลบรายการสั่งซื้อ/จ้างทั้งหมด</strong>ออกจากระบบ<br>
+                                • <strong>ไม่สามารถย้อนกลับได้</strong> กรุณาส่งออกข้อมูลก่อนลบ<br>
+                                • <strong>ไม่กระทบฐานข้อมูลราคา</strong> (ฐานข้อมูลราคายังคงอยู่)<br>
+                                • ต้องใช้รหัสผ่านแอดมินเพื่อยืนยัน
+                            </p>
+                        </div>
+                        <button class="btn btn-danger" onclick="clearAllRecords()">
+                            🗑️ ล้างรายการทั้งหมด (ต้องใช้รหัส)
                         </button>
                     </div>
 
@@ -2142,6 +2200,337 @@
             });
         }
 
+        // Randomize items from price database
+        async function randomizeItems() {
+            // โหลดฐานข้อมูลราคา
+            await loadPriceDatabase();
+            
+            const priceItems = Object.values(priceDatabase);
+            
+            if (priceItems.length === 0) {
+                Swal.fire({
+                    title: 'ไม่พบข้อมูล',
+                    text: 'ไม่มีรายการสินค้าในฐานข้อมูลราคา กรุณานำเข้าข้อมูลก่อน',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            const { value: targetAmount } = await Swal.fire({
+                title: '🎲 สุ่มรายการสินค้า',
+                html: `
+                    <div style="text-align: left; margin-bottom: 1rem;">
+                        <p style="margin-bottom: 0.5rem;">ระบบจะสุ่มเลือกรายการสินค้าจากฐานข้อมูลราคา</p>
+                        <p style="font-size: 0.9rem; color: #718096;">ฐานข้อมูลมี ${priceItems.length} รายการ</p>
+                    </div>
+                    <input id="swal-target-amount" class="swal2-input" type="number" placeholder="ระบุยอดสั่งซื้อที่ต้องการ (บาท)" min="1" step="0.01">
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'สุ่มรายการ',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#1a365d',
+                preConfirm: () => {
+                    const amount = document.getElementById('swal-target-amount').value;
+                    if (!amount || parseFloat(amount) <= 0) {
+                        Swal.showValidationMessage('กรุณาระบุยอดสั่งซื้อที่ต้องการ');
+                        return false;
+                    }
+                    return parseFloat(amount);
+                }
+            });
+
+            if (!targetAmount) return;
+
+            try {
+                showLoading(true);
+
+                // ล้างตารางเดิม
+                const tbody = document.getElementById('itemsTableBody');
+                tbody.innerHTML = '';
+
+                let currentTotal = 0;
+                let attempts = 0;
+                const maxAttempts = 100;
+                const selectedItems = [];
+
+                // สุ่มรายการจนได้ยอดที่ต้องการ หรือจนถึงจำนวนครั้งสูงสุด
+                while (currentTotal < targetAmount && attempts < maxAttempts) {
+                    // สุ่มเลือกรายการ
+                    const randomIndex = Math.floor(Math.random() * priceItems.length);
+                    const item = priceItems[randomIndex];
+                    
+                    const price = parseFloat(item.price) || 0;
+                    if (price <= 0) {
+                        attempts++;
+                        continue;
+                    }
+
+                    // คำนวณจำนวนที่ต้องการ
+                    const remaining = targetAmount - currentTotal;
+                    let quantity;
+                    
+                    if (remaining >= price * 2) {
+                        // ถ้ายังเหลือเยอะ ให้สุ่มจำนวน 1-5
+                        quantity = Math.floor(Math.random() * 5) + 1;
+                    } else {
+                        // ถ้าใกล้เป้าหมายแล้ว ให้คำนวณจำนวนที่พอดี
+                        quantity = Math.ceil(remaining / price);
+                    }
+
+                    const itemTotal = price * quantity;
+                    
+                    // ถ้าเพิ่มแล้วเกินเป้าหมาย ให้ลดจำนวน
+                    if (currentTotal + itemTotal > targetAmount && quantity > 1) {
+                        quantity = Math.floor((targetAmount - currentTotal) / price);
+                        if (quantity < 1) quantity = 1;
+                    }
+
+                    selectedItems.push({
+                        item: item.item,
+                        price: price,
+                        quantity: quantity,
+                        unit: item.unit || 'ชิ้น',
+                        total: price * quantity
+                    });
+
+                    currentTotal += price * quantity;
+                    attempts++;
+
+                    // ถ้าถึงหรือเกินเป้าหมายแล้ว ให้หยุด
+                    if (currentTotal >= targetAmount) break;
+                }
+
+                // เพิ่มรายการลงในตาราง
+                selectedItems.forEach((item, index) => {
+                    addRow();
+                    const row = tbody.rows[index];
+                    if (row) {
+                        row.querySelector('.item-input').value = item.item;
+                        row.querySelector('.price-input').value = item.price.toFixed(2);
+                        row.querySelector('.qty-input').value = item.quantity;
+                        row.querySelector('.unit-input').value = item.unit;
+                        calculateTotal(row.querySelector('.price-input'));
+                    }
+                });
+
+                // เพิ่มแถวว่างอีก 5 แถว
+                for (let i = 0; i < 5; i++) {
+                    addRow();
+                }
+
+                updateRowNumbers();
+                calculateGrandTotal();
+
+                const finalTotal = parseFloat(document.getElementById('grandTotal').textContent);
+                const difference = Math.abs(finalTotal - targetAmount);
+                const percentDiff = (difference / targetAmount * 100).toFixed(1);
+
+                await Swal.fire({
+                    title: 'สุ่มรายการสำเร็จ!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>จำนวนรายการ:</strong> ${selectedItems.length} รายการ</p>
+                            <p><strong>ยอดเป้าหมาย:</strong> ${targetAmount.toFixed(2)} บาท</p>
+                            <p><strong>ยอดที่ได้:</strong> ${finalTotal.toFixed(2)} บาท</p>
+                            <p><strong>ส่วนต่าง:</strong> ${difference.toFixed(2)} บาท (${percentDiff}%)</p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#1a365d'
+                });
+
+            } catch (error) {
+                console.error('Error randomizing items:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Load previous year data
+        async function loadPreviousYearData() {
+            const semester = document.getElementById('semester').value;
+            const creatorName = document.getElementById('creatorName').value;
+            const department = document.getElementById('department').value;
+
+            if (!semester) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกภาคเรียน/ปีการศึกษาก่อน',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            if (!creatorName) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกชื่อผู้ทำรายการก่อน',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            if (!department) {
+                Swal.fire({
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณาเลือกกลุ่มสาระการเรียนรู้ก่อน',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a365d'
+                });
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                // ดึงข้อมูลทั้งหมดจาก Firebase
+                const q = window.firestore.query(
+                    window.firestore.collection(window.db, 'purchase-orders'),
+                    window.firestore.orderBy('createdAt', 'desc')
+                );
+
+                const querySnapshot = await window.firestore.getDocs(q);
+                const allRecords = [];
+
+                querySnapshot.forEach((doc) => {
+                    allRecords.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // กรองรายการของคนนี้ในกลุ่มสาระนี้ ที่ไม่ใช่ภาคเรียนปัจจุบัน
+                const previousRecords = allRecords.filter(record => 
+                    record.creatorName === creatorName &&
+                    record.department === department &&
+                    record.semester !== semester
+                );
+
+                if (previousRecords.length === 0) {
+                    Swal.fire({
+                        title: 'ไม่พบข้อมูล',
+                        text: `ไม่พบรายการของ ${creatorName} (${department}) จากปีที่แล้ว`,
+                        icon: 'info',
+                        confirmButtonColor: '#1a365d'
+                    });
+                    return;
+                }
+
+                // แสดงรายการให้เลือก
+                const options = previousRecords.reduce((acc, record) => {
+                    acc[record.id] = `${record.semester} - ${record.projectName} (${record.items.length} รายการ, ${record.grandTotal} บาท)`;
+                    return acc;
+                }, {});
+
+                const { value: selectedId } = await Swal.fire({
+                    title: '📥 เลือกรายการที่ต้องการดึง',
+                    html: `
+                        <div style="text-align: left; margin-bottom: 1rem;">
+                            <p style="font-size: 0.9rem; color: #718096;">พบ ${previousRecords.length} รายการจากปีที่แล้ว</p>
+                        </div>
+                        <select id="swal-select-record" class="swal2-select" style="width: 100%;">
+                            <option value="">-- เลือกรายการ --</option>
+                            ${previousRecords.map(record => 
+                                `<option value="${record.id}">${record.semester} - ${record.projectName} (${record.items.length} รายการ)</option>`
+                            ).join('')}
+                        </select>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'ดึงข้อมูล',
+                    cancelButtonText: 'ยกเลิก',
+                    confirmButtonColor: '#1a365d',
+                    preConfirm: () => {
+                        const selected = document.getElementById('swal-select-record').value;
+                        if (!selected) {
+                            Swal.showValidationMessage('กรุณาเลือกรายการ');
+                            return false;
+                        }
+                        return selected;
+                    }
+                });
+
+                if (!selectedId) return;
+
+                const selectedRecord = previousRecords.find(r => r.id === selectedId);
+                
+                if (!selectedRecord) {
+                    throw new Error('ไม่พบรายการที่เลือก');
+                }
+
+                // โหลดข้อมูลลงในฟอร์ม (ไม่รวมภาคเรียน)
+                document.getElementById('projectName').value = selectedRecord.projectName || '';
+                document.getElementById('director').value = selectedRecord.director || '';
+                document.getElementById('officer').value = selectedRecord.officer || '';
+                document.getElementById('docType').value = selectedRecord.docType || 'ซื้อ';
+                document.getElementById('phoneNumber').value = selectedRecord.phoneNumber || '';
+
+                // ล้างตารางเดิม
+                const tbody = document.getElementById('itemsTableBody');
+                tbody.innerHTML = '';
+
+                // เพิ่มรายการ
+                selectedRecord.items.forEach((item, index) => {
+                    addRow();
+                    const row = tbody.rows[index];
+                    if (row) {
+                        row.querySelector('.item-input').value = item.item || '';
+                        row.querySelector('.price-input').value = item.price || '';
+                        row.querySelector('.qty-input').value = item.quantity || '';
+                        row.querySelector('.unit-input').value = item.unit || '';
+                        
+                        const priceInput = row.querySelector('.price-input');
+                        if (priceInput.value) {
+                            calculateTotal(priceInput);
+                        }
+                    }
+                });
+
+                // เพิ่ม row ว่างเพิ่มอีกนิด
+                for (let i = 0; i < 5; i++) {
+                    addRow();
+                }
+
+                updateRowNumbers();
+                calculateGrandTotal();
+
+                await Swal.fire({
+                    title: 'ดึงข้อมูลสำเร็จ!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>ภาคเรียนเดิม:</strong> ${selectedRecord.semester}</p>
+                            <p><strong>โครงการ:</strong> ${selectedRecord.projectName}</p>
+                            <p><strong>จำนวนรายการ:</strong> ${selectedRecord.items.length} รายการ</p>
+                            <p style="margin-top: 1rem; color: #1e40af; font-size: 0.9rem;">
+                                💡 คุณสามารถปรับแก้ข้อมูลและบันทึกเป็นรายการใหม่สำหรับ ${semester} ได้
+                            </p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#1a365d'
+                });
+
+            } catch (error) {
+                console.error('Error loading previous year data:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
         // Confirm clear draft
         async function confirmClearDraft() {
             const result = await Swal.fire({
@@ -2564,8 +2953,10 @@
         }
 
         // Generate document HTML
-        function generateDocumentHTML(type, data = null, isMerged = false, mergedData = null) {
+        function generateDocumentHTML(type, data = null, isMerged = false, mergedData = null, options = {}) {
             if (!data) data = getFormData();
+            
+            const { showDepartmentHeader = false, showAllSpecialNotes = true } = options;
             
             const date = formatThaiDate();
             const totalText = numberToThaiText(parseFloat(data.grandTotal));
@@ -2577,10 +2968,22 @@
                 if (isMerged && mergedData) {
                     // สร้างเอกสารรวมหลายโครงการ
                     mergedData.forEach((record, index) => {
-                        html += generateSingleDetailDocument(record, index > 0);
+                        // ปิดโน้ตพิเศษถ้า showAllSpecialNotes = false
+                        const modifiedRecord = showAllSpecialNotes ? record : { 
+                            ...record, 
+                            specialNoteEnabled: false, 
+                            specialNote: '' 
+                        };
+                        html += generateSingleDetailDocument(modifiedRecord, index > 0, showDepartmentHeader);
                     });
                 } else {
-                    html = generateSingleDetailDocument(data, false);
+                    // ปิดโน้ตพิเศษถ้า showAllSpecialNotes = false
+                    const modifiedData = showAllSpecialNotes ? data : { 
+                        ...data, 
+                        specialNoteEnabled: false, 
+                        specialNote: '' 
+                    };
+                    html = generateSingleDetailDocument(modifiedData, false, showDepartmentHeader);
                 }
                 
                 return html;
@@ -2590,23 +2993,36 @@
                 if (isMerged && mergedData) {
                     // สร้างเอกสารรวมหลายโครงการ
                     mergedData.forEach((record, index) => {
-                        html += generateSingleOrderDocument(record, index > 0);
+                        // ปิดโน้ตพิเศษถ้า showAllSpecialNotes = false
+                        const modifiedRecord = showAllSpecialNotes ? record : { 
+                            ...record, 
+                            specialNoteEnabled: false, 
+                            specialNote: '' 
+                        };
+                        html += generateSingleOrderDocument(modifiedRecord, index > 0, showDepartmentHeader);
                     });
                 } else {
-                    html = generateSingleOrderDocument(data, false);
+                    // ปิดโน้ตพิเศษถ้า showAllSpecialNotes = false
+                    const modifiedData = showAllSpecialNotes ? data : { 
+                        ...data, 
+                        specialNoteEnabled: false, 
+                        specialNote: '' 
+                    };
+                    html = generateSingleOrderDocument(modifiedData, false, showDepartmentHeader);
                 }
                 
                 return html;
             }
         }
 
-        function generateSingleDetailDocument(data, pageBreak) {
+        function generateSingleDetailDocument(data, pageBreak, showDepartmentHeader = false) {
             const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
             // โน้ตพิเศษใช้ฟอนต์ขนาดปกติเสมอ (16px) ไม่ว่ามีกี่คน
             const fontSize = '16px';
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
+                    ${showDepartmentHeader ? `<div style="text-align: left; font-size: 20px; color: #7c3aed; font-weight: 600; margin-bottom: 10px;">กลุ่มสาระ${data.department}</div>` : ''}
                     <div class="doc-header">
                         <div class="doc-title">รายละเอียดงบประมาณดำเนินการ</div>
                         <div class="doc-subtitle">${data.projectName}</div>
@@ -2663,7 +3079,7 @@
             `;
         }
 
-        function generateSingleOrderDocument(data, pageBreak) {
+        function generateSingleOrderDocument(data, pageBreak, showDepartmentHeader = false) {
             const date = '.............. เดือน .......................................... พ.ศ. ...............';
             const docTypeText = data.docType === 'ซื้อ' ? 'ซื้อสินค้าวัสดุ-อุปกรณ์' : 'จ้างบริการ';
             const showSpecialNote = data.specialNoteEnabled === true && data.specialNote;
@@ -2672,6 +3088,7 @@
             
             return `
                 <div class="print-document" ${pageBreak ? 'style="page-break-before: always;"' : ''}>
+                    ${showDepartmentHeader ? `<div style="text-align: left; font-size: 20px; color: #7c3aed; font-weight: 600; margin-bottom: 10px;">กลุ่มสาระ${data.department}</div>` : ''}
                     <div class="doc-header" style="text-align: center; margin-bottom: 10px;">
                         <div class="doc-title">ใบสั่ง${data.docType}สินค้า</div>
                     </div>
@@ -3066,6 +3483,114 @@
             displayHistory(filtered);
         }
 
+        // เลือกทั้งหมดตามที่กรอง
+        function selectAllFiltered() {
+            const checkboxes = document.querySelectorAll('.merge-checkbox-item');
+            const visibleCheckboxes = Array.from(checkboxes).filter(cb => {
+                const card = cb.closest('.history-card');
+                return card && card.offsetParent !== null; // เช็คว่า element แสดงอยู่
+            });
+            
+            visibleCheckboxes.forEach(cb => {
+                cb.checked = true;
+            });
+            
+            Swal.fire({
+                title: 'เลือกแล้ว!',
+                text: `เลือก ${visibleCheckboxes.length} รายการ`,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        // ยกเลือกทั้งหมด
+        function deselectAllFiltered() {
+            const checkboxes = document.querySelectorAll('.merge-checkbox-item');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            
+            Swal.fire({
+                title: 'ยกเลิกแล้ว!',
+                text: 'ยกเลือกทั้งหมดเรียบร้อย',
+                icon: 'info',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        // เปิด/ปิดโน้ตพิเศษทั้งหมด
+        async function bulkToggleSpecialNotes(enable) {
+            const actionText = enable ? 'เปิด' : 'ปิด';
+            const result = await Swal.fire({
+                title: `${actionText}โน้ตพิเศษทั้งหมด?`,
+                text: `ต้องการ${actionText}โน้ตพิเศษของทุกรายการหรือไม่?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: enable ? '#38a169' : '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: `ใช่, ${actionText}ทั้งหมด`,
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                showLoading(true);
+                let updated = 0;
+
+                for (const record of allHistory) {
+                    // อัปเดตเฉพาะรายการที่มีการเปลี่ยนแปลง
+                    if (enable) {
+                        // เปิดโน้ต - สร้าง template ถ้ายังไม่มี
+                        if (!record.specialNoteEnabled) {
+                            const template = `หากสงสัยสามารถสอบถามเพิ่มเติมได้ที่ ${record.creatorName} โทร. ${record.phoneNumber || 'ไม่ระบุ'}`;
+                            await window.firestore.updateDoc(
+                                window.firestore.doc(window.db, 'purchase-orders', record.id),
+                                {
+                                    specialNoteEnabled: true,
+                                    specialNote: template
+                                }
+                            );
+                            updated++;
+                        }
+                    } else {
+                        // ปิดโน้ต
+                        if (record.specialNoteEnabled) {
+                            await window.firestore.updateDoc(
+                                window.firestore.doc(window.db, 'purchase-orders', record.id),
+                                {
+                                    specialNoteEnabled: false
+                                }
+                            );
+                            updated++;
+                        }
+                    }
+                }
+
+                await loadHistory();
+
+                await Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: `${actionText}โน้ตพิเศษ ${updated} รายการเรียบร้อยแล้ว`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error('Error toggling special notes:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: error.message,
+                    icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
         // View history
         async function viewHistory(id, type) {
             try {
@@ -3278,7 +3803,14 @@
             const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.id);
             const mergedData = allHistory.filter(h => selectedIds.includes(h.id));
 
-            const html = generateDocumentHTML(type, null, true, mergedData);
+            // อ่านค่า options จาก checkbox
+            const showDepartmentHeader = document.getElementById('showDepartmentHeader')?.checked || false;
+            const showAllSpecialNotes = document.getElementById('showAllSpecialNotes')?.checked || false;
+
+            const html = generateDocumentHTML(type, null, true, mergedData, {
+                showDepartmentHeader,
+                showAllSpecialNotes
+            });
             document.getElementById('printArea').innerHTML = html;
             
             setTimeout(() => {
@@ -3432,10 +3964,14 @@
             // ใช้ข้อมูลจากรายการแรกที่เลือก
             const firstRecord = mergedData[0];
             
+            // อ่านค่า options จาก checkbox
+            const showDepartmentHeader = document.getElementById('showDepartmentHeader')?.checked || false;
+            const showAllSpecialNotes = document.getElementById('showAllSpecialNotes')?.checked || false;
+            
             // สร้าง combined data โดยใช้ข้อมูลโครงการจากรายการแรก
             const combinedData = {
                 projectName: firstRecord.projectName,
-                department: firstRecord.department,
+                department: firstRecord.department, // ใช้กลุ่มสาระจากรายการแรก
                 director: firstRecord.director,
                 officer: firstRecord.officer,
                 docType: firstRecord.docType,
@@ -3443,14 +3979,14 @@
                 phoneNumber: firstRecord.phoneNumber || '',
                 items: allItems,
                 grandTotal: totalBudget.toFixed(2),
-                // ใช้โน้ตที่รวมแล้ว
-                specialNoteEnabled: combinedSpecialNote !== '',
-                specialNote: combinedSpecialNote
+                // ใช้โน้ตที่รวมแล้ว (ถ้า showAllSpecialNotes = true)
+                specialNoteEnabled: showAllSpecialNotes && combinedSpecialNote !== '',
+                specialNote: showAllSpecialNotes ? combinedSpecialNote : ''
             };
 
             const html = type === 'detail' ? 
-                generateSingleDetailDocument(combinedData, false) : 
-                generateSingleOrderDocument(combinedData, false);
+                generateSingleDetailDocument(combinedData, false, showDepartmentHeader) : 
+                generateSingleOrderDocument(combinedData, false, showDepartmentHeader);
 
             document.getElementById('printArea').innerHTML = html;
             
@@ -3542,6 +4078,121 @@
                     title: 'เกิดข้อผิดพลาด!',
                     text: 'ไม่สามารถส่งออกข้อมูลได้: ' + error.message,
                     icon: 'error'
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Clear all records (for new academic year)
+        async function clearAllRecords() {
+            // ขอรหัสผ่านแอดมินก่อน
+            const { value: password } = await Swal.fire({
+                title: '🔐 ยืนยันตัวตน',
+                text: 'กรุณาใส่รหัสผ่านแอดมินเพื่อยืนยัน',
+                input: 'password',
+                inputPlaceholder: 'รหัสผ่าน',
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#e53e3e',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณาใส่รหัสผ่าน';
+                    }
+                    if (value !== '0000') {
+                        return 'รหัสผ่านไม่ถูกต้อง';
+                    }
+                }
+            });
+
+            if (!password) return;
+
+            // ยืนยันอีกครั้ง
+            const result = await Swal.fire({
+                title: '⚠️ ยืนยันการลบทั้งหมด',
+                html: `
+                    <div style="text-align: left; color: #991b1b;">
+                        <p style="font-weight: 600; margin-bottom: 1rem;">คุณกำลังจะลบรายการสั่งซื้อ/จ้างทั้งหมดออกจากระบบ</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>⚠️ การดำเนินการนี้:</strong></p>
+                        <ul style="margin-left: 1.5rem; line-height: 1.8;">
+                            <li>จะลบรายการทั้งหมดถาวร</li>
+                            <li>ไม่สามารถย้อนกลับได้</li>
+                            <li>ควรส่งออกข้อมูลก่อนลบ</li>
+                        </ul>
+                        <p style="margin-top: 1rem; font-weight: 600;">ต้องการดำเนินการต่อหรือไม่?</p>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#718096',
+                confirmButtonText: 'ใช่, ลบทั้งหมด',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                showLoading(true);
+
+                // โหลดรายการทั้งหมด
+                if (allHistory.length === 0) {
+                    await loadHistory();
+                }
+
+                const totalRecords = allHistory.length;
+
+                if (totalRecords === 0) {
+                    Swal.fire({
+                        title: 'ไม่มีรายการ',
+                        text: 'ไม่มีรายการในระบบที่จะลบ',
+                        icon: 'info',
+                        confirmButtonColor: '#1a365d'
+                    });
+                    return;
+                }
+
+                // ลบทีละรายการ
+                let deleted = 0;
+                for (const record of allHistory) {
+                    try {
+                        await window.firestore.deleteDoc(
+                            window.firestore.doc(window.db, 'purchase-orders', record.id)
+                        );
+                        deleted++;
+                    } catch (error) {
+                        console.error(`Error deleting record ${record.id}:`, error);
+                    }
+                }
+
+                // รีโหลดประวัติ
+                await loadHistory();
+
+                await Swal.fire({
+                    title: 'ล้างรายการสำเร็จ!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>ลบรายการทั้งหมด:</strong> ${deleted} รายการ</p>
+                            <p style="margin-top: 1rem; color: #38a169;">
+                                ✅ ระบบพร้อมสำหรับปีการศึกษาใหม่
+                            </p>
+                            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #718096;">
+                                💡 ฐานข้อมูลราคายังคงอยู่ สามารถใช้งานต่อได้
+                            </p>
+                        </div>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#1a365d'
+                });
+
+            } catch (error) {
+                console.error('Error clearing all records:', error);
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'ไม่สามารถลบรายการได้: ' + error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a365d'
                 });
             } finally {
                 showLoading(false);
