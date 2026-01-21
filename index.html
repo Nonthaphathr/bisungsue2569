@@ -486,6 +486,48 @@
             border-radius: 50%;
         }
 
+        /* Dropdown styles */
+        .btn-group {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            min-width: 180px;
+        }
+
+        .dropdown-item {
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            color: var(--text);
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg);
+        }
+
+        .dropdown-item:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+
+        .dropdown-item:last-child {
+            border-radius: 0 0 6px 6px;
+        }
+
         /* Animation สำหรับปุ่มดูฐานข้อมูลราคา */
         .btn-price-db {
             position: relative;
@@ -1413,23 +1455,38 @@
                             <strong>ฐานข้อมูลราคาเป็นราคาอ้างอิงเท่านั้น</strong> ไม่บันทึกราคาอัตโนมัติ
                         </p>
                     </div>
-                    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="btn btn-primary btn-small" onclick="addRow()">
-                            ➕ เพิ่มแถว
-                        </button>
-                        <button class="btn btn-warning btn-small" onclick="clearTable()">
-                            🗑️ ล้างตาราง
-                        </button>
-                        <button class="btn btn-success btn-small btn-price-db" onclick="showPriceDatabase()">
-                            💰 ดูฐานข้อมูลราคา
-                        </button>
-                        <button class="btn btn-primary btn-small" onclick="randomizeItems()">
-                            🎲 สุ่มรายการสินค้า
-                        </button>
-                        <button class="btn btn-warning btn-small" onclick="loadPreviousYearData()">
-                            📥 ดึงข้อมูลปีที่แล้ว
-                        </button>
+                    <!-- ปุ่มจัดการตาราง -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                        <!-- กลุ่ม: จัดการตาราง -->
+                        <div style="padding: 1rem; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+                            <h4 style="font-size: 0.9rem; color: #1a365d; margin-bottom: 0.75rem; font-weight: 600;">📝 จัดการตาราง</h4>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-primary btn-small" onclick="addRow()" title="เพิ่มแถวใหม่">
+                                    ➕ เพิ่มแถว
+                                </button>
+                                <button class="btn btn-warning btn-small" onclick="clearTable()" title="ล้างข้อมูลในตาราง">
+                                    🗑️ ล้างตาราง
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- กลุ่ม: เครื่องมือช่วย -->
+                        <div style="padding: 1rem; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+                            <h4 style="font-size: 0.9rem; color: #1a365d; margin-bottom: 0.75rem; font-weight: 600;">🛠️ เครื่องมือช่วย</h4>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-success btn-small btn-price-db" onclick="showPriceDatabase()" title="ดูและค้นหาราคาสินค้า">
+                                    💰 ฐานราคา
+                                </button>
+                                <button class="btn btn-primary btn-small" onclick="randomizeItems()" title="สุ่มรายการจากฐานข้อมูล">
+                                    🎲 สุ่มรายการ
+                                </button>
+                                <button class="btn btn-warning btn-small" onclick="loadPreviousYearData()" title="ดึงข้อมูลจากปีที่แล้ว">
+                                    📥 ดึงปีก่อน
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                    
                     <div class="table-container">
                         <table class="items-table" id="itemsTable">
                             <thead>
@@ -1458,17 +1515,27 @@
                 </div>
 
                 <div class="actions">
-                    <button class="btn btn-success" onclick="saveData()">
+                    <button class="btn btn-success" onclick="saveData()" style="font-size: 1.1rem; padding: 0.875rem 1.75rem;" title="บันทึกรายการลง Firebase">
                         💾 บันทึกรายการ
                     </button>
-                    <button class="btn btn-primary" onclick="previewDocument('detail')">
-                        👁️ ดูตัวอย่างใบรายละเอียด
-                    </button>
-                    <button class="btn btn-primary" onclick="previewDocument('order')">
-                        👁️ ดูตัวอย่างใบสั่งซื้อ/จ้าง
-                    </button>
-                    <button class="btn btn-warning" onclick="confirmClearDraft()">
-                        🗑️ ล้างข้อมูล Draft
+                    
+                    <!-- Dropdown สำหรับดูตัวอย่าง -->
+                    <div class="btn-group" style="position: relative; display: inline-block;">
+                        <button class="btn btn-primary" onclick="togglePreviewDropdown()" style="font-size: 1.1rem; padding: 0.875rem 1.75rem;" title="เลือกประเภทเอกสารที่ต้องการดูตัวอย่าง">
+                            👁️ ดูตัวอย่างเอกสาร ▼
+                        </button>
+                        <div id="previewDropdown" class="dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border: 2px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 250px; z-index: 100;">
+                            <button class="dropdown-item" onclick="previewDocument('detail'); togglePreviewDropdown();" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.95rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                📄 ใบรายละเอียดงบประมาณ
+                            </button>
+                            <button class="dropdown-item" onclick="previewDocument('order'); togglePreviewDropdown();" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.95rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                📋 ใบสั่งซื้อ/สั่งจ้าง
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-warning" onclick="confirmClearDraft()" title="ล้างข้อมูลที่บันทึกอัตโนมัติ">
+                        🗑️ ล้าง Draft
                     </button>
                 </div>
             </div>
@@ -1526,36 +1593,71 @@
                             </div>
                         </div>
                         
-                        <!-- ปุ่มควบคุม -->
-                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            <button class="btn btn-warning btn-small" onclick="selectAllFiltered()">
-                                ✅ เลือกทั้งหมด
-                            </button>
-                            <button class="btn btn-warning btn-small" onclick="deselectAllFiltered()">
-                                ❌ ยกเลือกทั้งหมด
-                            </button>
-                            <button class="btn btn-success btn-small" onclick="bulkToggleSpecialNotes(true)">
-                                💬 เปิดโน้ตพิเศษทั้งหมด
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="bulkToggleSpecialNotes(false)">
-                                🔇 ปิดโน้ตพิเศษทั้งหมด
-                            </button>
+                        <!-- ปุ่มควบคุมแบบจัดกลุ่ม -->
+                        <div style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                            <!-- กลุ่ม: เลือกรายการ -->
+                            <div style="padding: 1rem; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                <h4 style="font-size: 0.9rem; color: #1a365d; margin-bottom: 0.75rem; font-weight: 600;">✅ เลือกรายการ</h4>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button class="btn btn-success btn-small" onclick="selectAllFiltered()" title="เลือกรายการทั้งหมดที่กรองแล้ว">
+                                        ✅ เลือกทั้งหมด
+                                    </button>
+                                    <button class="btn btn-warning btn-small" onclick="deselectAllFiltered()" title="ยกเลิกการเลือกทั้งหมด">
+                                        ❌ ยกเลือก
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- กลุ่ม: จัดการโน้ต -->
+                            <div style="padding: 1rem; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                <h4 style="font-size: 0.9rem; color: #1a365d; margin-bottom: 0.75rem; font-weight: 600;">💬 จัดการโน้ต</h4>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button class="btn btn-success btn-small" onclick="bulkToggleSpecialNotes(true)" title="เปิดโน้ตพิเศษให้รายการทั้งหมด">
+                                        💬 เปิดทั้งหมด
+                                    </button>
+                                    <button class="btn btn-danger btn-small" onclick="bulkToggleSpecialNotes(false)" title="ปิดโน้ตพิเศษทั้งหมด">
+                                        🔇 ปิดทั้งหมด
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- กลุ่ม: พิมพ์เอกสาร -->
+                            <div style="padding: 1rem; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+                                <h4 style="font-size: 0.9rem; color: #1a365d; margin-bottom: 0.75rem; font-weight: 600;">🖨️ พิมพ์รวม</h4>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <!-- Dropdown พิมพ์แยกหน้า -->
+                                    <div class="btn-group" style="position: relative; display: inline-block;">
+                                        <button class="btn btn-primary btn-small" onclick="togglePrintSeparateDropdown()" title="พิมพ์แต่ละรายการแยกหน้า">
+                                            📄 แยกหน้า ▼
+                                        </button>
+                                        <div id="printSeparateDropdown" class="dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border: 2px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 220px; z-index: 100;">
+                                            <button class="dropdown-item" onclick="printMergedDocuments('detail'); togglePrintSeparateDropdown();" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                                📋 ใบรายละเอียด
+                                            </button>
+                                            <button class="dropdown-item" onclick="printMergedDocuments('order'); togglePrintSeparateDropdown();" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                                📋 ใบสั่งซื้อ/จ้าง
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Dropdown พิมพ์ตารางเดียว -->
+                                    <div class="btn-group" style="position: relative; display: inline-block;">
+                                        <button class="btn btn-success btn-small" onclick="togglePrintCombinedDropdown()" title="พิมพ์รวมทุกรายการในตารางเดียว">
+                                            📊 ตารางเดียว ▼
+                                        </button>
+                                        <div id="printCombinedDropdown" class="dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: white; border: 2px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 220px; z-index: 100;">
+                                            <button class="dropdown-item" onclick="printMergedSingleTable('detail'); togglePrintCombinedDropdown();" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                                📋 ใบรายละเอียด
+                                            </button>
+                                            <button class="dropdown-item" onclick="printMergedSingleTable('order'); togglePrintCombinedDropdown();" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                                📋 ใบสั่งซื้อ/จ้าง
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                            <button class="btn btn-primary btn-small" onclick="printMergedDocuments('detail')">
-                                🖨️ พิมพ์รวมใบรายละเอียด (แยกหน้า)
-                            </button>
-                            <button class="btn btn-primary btn-small" onclick="printMergedDocuments('order')">
-                                🖨️ พิมพ์รวมใบสั่งซื้อ/จ้าง (แยกหน้า)
-                            </button>
-                            <button class="btn btn-success btn-small" onclick="printMergedSingleTable('detail')">
-                                📄 พิมพ์รวมใบรายละเอียด (ตารางเดียว)
-                            </button>
-                            <button class="btn btn-success btn-small" onclick="printMergedSingleTable('order')">
-                                📄 พิมพ์รวมใบสั่งซื้อ/จ้าง (ตารางเดียว)
-                            </button>
-                        </div>
                         <div class="tip-box">
                             <p>
                                 💡 <strong>เคล็ดลับ:</strong> เมื่อพิมพ์รวม (ตารางเดียว) ระบบจะใช้ข้อมูลโครงการและโน้ตพิเศษจาก<strong>รายการแรกที่คุณเลือก</strong>
@@ -3325,28 +3427,52 @@
                         </div>
                         <div class="history-card-actions">
                             <input type="checkbox" class="merge-checkbox-item" data-id="${record.id}" data-department="${record.department}">
-                            <label style="margin-right: 1rem; font-size: 0.85rem;">เลือกรวมพิมพ์</label>
+                            <label style="margin-right: 0.75rem; font-size: 0.85rem;">เลือก</label>
+                            
                             <button class="btn ${hasSpecialNote ? 'btn-success' : 'btn-warning'} btn-small" 
                                     onclick="toggleSpecialNoteForRecord('${record.id}')"
                                     title="${hasSpecialNote ? 'แก้ไข/ปิดโน้ตพิเศษ' : 'เปิดโน้ตพิเศษ'}">
-                                ${hasSpecialNote ? '📝 โน้ตเปิดอยู่' : '📝 เพิ่มโน้ต'}
+                                ${hasSpecialNote ? '💬' : '📝'}
                             </button>
-                            <button class="btn btn-warning btn-small" onclick="loadHistoryToEdit('${record.id}')">
-                                ✏️ แก้ไข
+                            
+                            <button class="btn btn-warning btn-small" onclick="loadHistoryToEdit('${record.id}')" title="แก้ไขรายการ">
+                                ✏️
                             </button>
-                            <button class="btn btn-primary btn-small" onclick="viewHistory('${record.id}', 'detail')">
-                                👁️ ดูใบรายละเอียด
-                            </button>
-                            <button class="btn btn-primary btn-small" onclick="viewHistory('${record.id}', 'order')">
-                                👁️ ดูใบสั่งซื้อ/จ้าง
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="deleteHistory('${record.id}')" title="ต้องใช้รหัสผ่านแอดมินเพื่อลบ">
-                                🔐 ลบ (ต้องใช้รหัส)
+                            
+                            <!-- Dropdown ดูเอกสาร -->
+                            <div class="btn-group" style="position: relative; display: inline-block;">
+                                <button class="btn btn-primary btn-small" onclick="toggleViewDropdown('${record.id}')" title="ดูเอกสาร">
+                                    👁️ ▼
+                                </button>
+                                <div id="viewDropdown_${record.id}" class="dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.25rem; background: white; border: 2px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 180px; z-index: 100;">
+                                    <button class="dropdown-item" onclick="viewHistory('${record.id}', 'detail'); toggleViewDropdown('${record.id}');" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.85rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                        📄 ใบรายละเอียด
+                                    </button>
+                                    <button class="dropdown-item" onclick="viewHistory('${record.id}', 'order'); toggleViewDropdown('${record.id}');" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.85rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
+                                        📋 ใบสั่งซื้อ/จ้าง
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-danger btn-small" onclick="deleteHistory('${record.id}')" title="ลบรายการ (ต้องใช้รหัสผ่านแอดมิน)">
+                                🗑️
                             </button>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        // Toggle view dropdown for history card
+        function toggleViewDropdown(recordId) {
+            const dropdown = document.getElementById('viewDropdown_' + recordId);
+            // ปิด dropdown อื่นๆ ก่อน
+            document.querySelectorAll('[id^="viewDropdown_"]').forEach(d => {
+                if (d.id !== 'viewDropdown_' + recordId) {
+                    d.style.display = 'none';
+                }
+            });
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
         }
 
         // Toggle special note for specific record
@@ -6179,6 +6305,44 @@
                 showLoading(false);
             }
         }
+
+        // Toggle dropdown menus
+        function togglePreviewDropdown() {
+            const dropdown = document.getElementById('previewDropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function togglePrintSeparateDropdown() {
+            const dropdown = document.getElementById('printSeparateDropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function togglePrintCombinedDropdown() {
+            const dropdown = document.getElementById('printCombinedDropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // ปิด dropdown เมื่อคลิกข้างนอก
+        document.addEventListener('click', function(event) {
+            // ปิด dropdown หลัก
+            const dropdowns = ['previewDropdown', 'printSeparateDropdown', 'printCombinedDropdown'];
+            dropdowns.forEach(id => {
+                const dropdown = document.getElementById(id);
+                if (dropdown) {
+                    const button = dropdown.previousElementSibling;
+                    if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                }
+            });
+            
+            // ปิด viewDropdown ทั้งหมด
+            if (!event.target.closest('.btn-group')) {
+                document.querySelectorAll('[id^="viewDropdown_"]').forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+            }
+        });
 
         // Close modal
         function closeModal(modalId) {
