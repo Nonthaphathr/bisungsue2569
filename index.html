@@ -3441,20 +3441,13 @@
                                 ✏️
                             </button>
                             
-                            <!-- Dropdown ดูเอกสาร -->
-                            <div class="btn-group" style="position: relative; display: inline-block;">
-                                <button class="btn btn-primary btn-small" onclick="toggleViewDropdown('${record.id}')" title="ดูเอกสาร">
-                                    👁️ ▼
-                                </button>
-                                <div id="viewDropdown_${record.id}" class="dropdown-menu" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 0.25rem; background: white; border: 2px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 180px; z-index: 100;">
-                                    <button class="dropdown-item" onclick="viewHistory('${record.id}', 'detail'); toggleViewDropdown('${record.id}');" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.85rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
-                                        📄 ใบรายละเอียด
-                                    </button>
-                                    <button class="dropdown-item" onclick="viewHistory('${record.id}', 'order'); toggleViewDropdown('${record.id}');" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 0.85rem; transition: background 0.2s;" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='transparent'">
-                                        📋 ใบสั่งซื้อ/จ้าง
-                                    </button>
-                                </div>
-                            </div>
+                            <button class="btn btn-primary btn-small" onclick="viewHistory('${record.id}', 'detail')" title="ดูใบรายละเอียดงบประมาณ">
+                                📄
+                            </button>
+                            
+                            <button class="btn btn-primary btn-small" onclick="viewHistory('${record.id}', 'order')" title="ดูใบสั่งซื้อ/สั่งจ้าง">
+                                📋
+                            </button>
                             
                             <button class="btn btn-danger btn-small" onclick="deleteHistory('${record.id}')" title="ลบรายการ (ต้องใช้รหัสผ่านแอดมิน)">
                                 🗑️
@@ -3463,18 +3456,6 @@
                     </div>
                 `;
             }).join('');
-        }
-
-        // Toggle view dropdown for history card
-        function toggleViewDropdown(recordId) {
-            const dropdown = document.getElementById('viewDropdown_' + recordId);
-            // ปิด dropdown อื่นๆ ก่อน
-            document.querySelectorAll('[id^="viewDropdown_"]').forEach(d => {
-                if (d.id !== 'viewDropdown_' + recordId) {
-                    d.style.display = 'none';
-                }
-            });
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
         }
 
         // Toggle special note for specific record
@@ -6337,13 +6318,6 @@
                     }
                 }
             });
-            
-            // ปิด viewDropdown ทั้งหมด
-            if (!event.target.closest('.btn-group')) {
-                document.querySelectorAll('[id^="viewDropdown_"]').forEach(dropdown => {
-                    dropdown.style.display = 'none';
-                });
-            }
         });
 
         // Close modal
